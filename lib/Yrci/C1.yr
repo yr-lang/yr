@@ -1,0 +1,58 @@
+[[ attributes=["teste"]; icon="code-slash"; teste="teste"
+-- express, mongoose
+!! Yrci/C2
+
+""
+
+# Yrci/C1
+
+This is a teste example
+
+# Should write md files here
+
+##
+
+middle
+
+#<
+
+footer
+
+#>
+
+header
+
+==
+
+pixel tags here
+
+>>
+
+_meta
+
+><
+
+_
+  _
+
+<<
+
+_
+  _
+
+<>
+
+_script
+
+@@
+
+middle
+
+@<
+
+footer
+
+@>
+
+header
+

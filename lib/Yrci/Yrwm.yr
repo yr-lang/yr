@@ -1,0 +1,32 @@
+!! Yrwm/app
+
+><
+
+_
+  _ .yrwm-grid
+    _ .yrwm-container
+      _ .dashboard-wrapper.grafou-wrapper
+        _grafou/app
+      _ .dashboard-wrapper.gitya-wrapper.hidden
+        _gitya/app
+      _ .dashboard-wrapper.sumdow-wrapper.hidden
+        _sumdow/app
+
+    _ .yrwm-tabs
+      _
+        _span
+          _handles/dashboard .fit att={{ target: '.grafou-wrapper', container: '.yrwm-container', start-active: 1 }}
+            Grafou
+          _handles/dashboard .fit att={{ target: '.gitya-wrapper', container: '.yrwm-container' }}
+            Gitya
+          _handles/dashboard .fit att={{ target: '.sumdow-wrapper', container: '.yrwm-container' }}
+            Sumdow
+
+        _span
+          _button .dashboard-handle
+            _span .bi.bi-plus-lg
+      _
+        _button .dashboard-handle
+          _span .bi.bi-arrow-clockwise
+        _button .dashboard-handle
+          _span .bi.bi-shop

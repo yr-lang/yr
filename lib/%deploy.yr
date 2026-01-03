@@ -1,0 +1,7 @@
+!! %gh-pages
+
+**
+
+___deploy
+
+gh-pages dist

@@ -1,0 +1,14 @@
+!! @wrapper
+
+++
+
+_ .wrapper att={{ background: red }}
+  ___ .wrapper-container
+
+@>
+
+_@wrapper(Yrci, Wrapper) {
+  My function is here
+@}
+
+OIII

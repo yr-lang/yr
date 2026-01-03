@@ -1,0 +1,18 @@
+><
+
+_ciyr/c1
+  _ .c1-inner-inner
+
+||
+
+_ciyr/c1
+  _ .teste1
+    _ciyr/c2 .teste-inner1
+      _ .teste
+        _ .teste-inner
+          _ .teste-c2-inner1
+      _ .teste2
+    _ .c1-inner1
+      _ .c1-inner-inner
+  _ .teste21
+

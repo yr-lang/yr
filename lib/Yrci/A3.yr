@@ -1,0 +1,51 @@
+><
+
+_yrci/a2 .teste-upper
+  _ .teste
+
+||
+
+
+_!yrci/a2 .teste-upper
+  _ .a2-first
+    _ .a2-inner
+      ___ .a2-inner-inner
+        _ .teste
+    _!yrci/a1 .a2-a1
+      _ .a1
+        ___ .a1-inner
+          _ .a2
+          Oi tudo bem
+          _ .a2-a2
+            _ .inner-a2
+    _ .really-long-string \\
+    #matched-by-other-really-long-string \\
+    .yet-another-really-long-string
+  _
+    Teste
+
+
+<div class="teste-upper">
+  <div class="a2-first">
+    <div class="a2-inner">
+      <div class="a2-inner-inner">
+        <div class="teste"></div>
+      </div>
+    </div>
+    <div class="a2-a1">
+      <div class="a1">
+        <div class="a1-inner">
+          <div class="a2"></div>
+          <span>Oi tudo bem</span>
+          <div class="a2-a2">
+            <div class="inner-a2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="really-long-string yet-another-really-long-string" id="matched-by-other-really-long-string"></div>
+  </div>
+  <div>
+    <span>Teste</span>
+  </div>
+</div>

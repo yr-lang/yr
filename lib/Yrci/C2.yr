@@ -1,0 +1,17 @@
+[[ attributes=["teste"]; icon="code-slash"
+!! hidden
+
+""
+
+# Yrci/C2
+
+++
+
+_button type="submit"
+_input type="password"
+
+@>
+
+function YrciC2() {
+  // pass
+}

@@ -1,0 +1,28 @@
+[[ attributes=["teste"]; icon="code-slash"
+!! hidden
+!! @css
+!! %serve
+
+++
+
+_ .teste
+
+><
+
+_
+  _yrci/c2 att={{ observer-id: yrci/c2 }}
+  Teste
+
+##
+
+_@cssTablet() {
+  .teste {
+    display: block;
+  }
+@}
+
+%%
+
+_@teste() {
+  oi
+@}

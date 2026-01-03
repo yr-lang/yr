@@ -1,0 +1,14 @@
+++
+
+_ .teste-c1
+  _ciyr/c2 .teste-inner1
+    _ .teste-c2-inner1
+  ___ .c1-inner1
+_ .teste21
+
+##
+
+.teste-c1 {
+  min-height: 20px;
+  background: yellow;
+}

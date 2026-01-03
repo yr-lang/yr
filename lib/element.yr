@@ -1,0 +1,352 @@
+!! hidden
+!! crypto
+
+%%
+
+_@setElement(#name, #query, #parent=document) {
+  const #name = #parent.querySelector(#query);
+@}
+
+_@elementListener(#query, #parent=document, #listener='click') {
+  #parent.querySelector(#query).addEventListener(#listener, async (e) => {
+    const _target = #parent.querySelector(#query);
+    ___
+  });
+@}
+
+@>
+
+function eventListener(element, action, callback) {
+  element.addEventListener(action, (e) => {
+    try {
+      e.preventDefault();
+    } catch(error) {/* pass */}
+
+    try {
+      e.stopPropagation();
+    } catch(error) {/* pass */}
+
+    callback(e);
+    return false;
+  });
+}
+
+function createElement(options={}, listener=false) {
+  if (!options.parent) options.parent = document.body;
+  if (!options.selector) options.selector = 'div';
+
+  const element = document.createElement(options.selector);
+  if (options.id) element.id = options.id;
+  if (options.classes) element.className = options.classes;
+
+  if (options.content || options.content === 0)
+    element.innerHTML = options.content;
+
+  if (options.checked) element.checked = options.checked;
+  if (options.selected) element.selected = options.selected;
+
+  if (!options.attributes) options.attributes = {};
+  for (let key of Object.keys(options.attributes)) {
+    element.setAttribute(key, options.attributes[key]);
+  }
+
+  if (!options.style) options.style = {};
+  for (let key of Object.keys(options.style)) {
+    element.style[key] = options.style[key];
+  }
+
+  if (listener) eventListener(element,
+    (options.selector === 'form') ? 'submit'
+      : ((options.selector === 'input' || options.selector === 'select')
+        ? 'change' : 'click'),
+    listener
+  );
+
+  if (options.firstChild) {
+    options.parent.insertBefore(element, options.parent.firstChild);
+  } else {
+    options.parent.appendChild(element);
+  }
+
+  return element;
+}
+
+function removeElement(id) {
+  try {
+    document.getElementById(id).remove();
+  } catch(error) {/* pass */}
+}
+
+function removeElements__Id(root, wrappers={}) {
+  function clean(el) {
+    [...el.classList].forEach(cls => {
+      if (cls.startsWith('__') && !(cls in wrappers)) {
+        el.classList.remove(cls);
+      }
+    });
+  }
+
+  // clean root + all descendants
+  clean(root);
+  root.querySelectorAll('*').forEach(clean);
+}
+
+function copyElement(element, remove=false) {
+  const elementData = {
+    selector: element.tagName.toLowerCase(),
+    classes: element.className,
+    content: element.innerHTML,
+    attributes: {}
+  };
+
+  const wrappers = {};
+  for (let item of [element, ...element.querySelectorAll('div')])
+    if (item._config) wrappers[item._config.id] = item._config;
+
+  if (element.href) elementData.attributes.href = element.href;
+  if (element.src) elementData.attributes.src = element.src;
+  if (remove) element.remove();
+
+  return function (parentElement, data={}, options={ firstChild: false, id: false }) {
+    const newElement = createElement({
+      ...elementData, ...options,
+      parent: parentElement
+    });
+
+    removeElements__Id(newElement, wrappers);
+
+    for (let item in wrappers) {
+      const wrapper = newElement.className.includes(item) ?
+        newElement : newElement.querySelector(`.${item}`);
+
+      wrappers[item].id = '_CE_' + generateToken(8);
+
+      wrapper.classList.remove(item);
+      wrapper.classList.add(wrappers[item].id);
+      wrapper._config = wrappers[item];
+
+      try {
+        window[`__${wrapper._config.category}_${wrapper._config.option}`](wrapper._config);
+      } catch(error) { console.log(error); }
+    }
+
+    for (let item in data) {
+      const auxElement = newElement.querySelector(`.${item}`);
+
+      if (data[item].content || data[item].content === '')
+        auxElement.textContent = data[item].content;
+
+      if (data[item].id) auxElement.id = data[item].id;
+      if (data[item].src) auxElement.src = data[item].src;
+      if (data[item].srcdoc) auxElement.srcdoc = data[item].srcdoc;
+      if (data[item].href) auxElement.href = data[item].href;
+      if (data[item].value) auxElement.value = data[item].value;
+      if (data[item].name) auxElement.name = data[item].name;
+
+      try {
+        data[item].callback(auxElement, newElement);
+      } catch(error) {/* pass */}
+    }
+
+    return newElement;
+  };
+}
+
+function cloneElement(element) {
+  const newElement = element.cloneNode(true);
+  element.parentNode.replaceChild(newElement, element);
+  element.remove();
+  return newElement;
+}
+
+// https://www.w3schools.com/howto/howto_js_draggable.asp
+function dragElement(
+  element,
+  options={ headerSelector: ".draggable-header", clone: false },
+  touchmoveCallback=false, touchstartCallback=false, touchendCallback=false
+) {
+  let headerElement = element.querySelector(options.headerSelector) || element;
+  let isDragging = false, dragTimer;
+  let offsetX = 0, offsetY = 0;
+  let activeEl = element;
+
+  const createClone = () => {
+    const rect = element.getBoundingClientRect();
+    const clone = element.cloneNode(true);
+    clone.classList.add("drag-clone"); // ✅ mark as clone
+    clone.style.position = "fixed";
+    clone.style.zIndex = 999;
+    clone.style.top = rect.top + "px";
+    clone.style.left = rect.left + "px";
+    clone.style.width = rect.width + "px";
+    clone.style.pointerEvents = "none"; // ✅ ignore pointer events
+    document.body.appendChild(clone);
+    return clone;
+  };
+
+  const start = (x, y, e) => {
+    activeEl = (!options.clone) ? element : createClone();
+
+    const rect = activeEl.getBoundingClientRect();
+    offsetX = x - rect.left;
+    offsetY = y - rect.top;
+    isDragging = true;
+
+    activeEl.style.cursor = "grabbing";
+    if (touchstartCallback) touchstartCallback(e, offsetX, offsetY);
+  };
+
+  const move = (x, y, e) => {
+    if (!isDragging) return;
+    activeEl.style.left = x - offsetX + "px";
+    activeEl.style.top = y - offsetY + "px";
+    if (touchmoveCallback) touchmoveCallback(e, offsetX, offsetY);
+  };
+
+  const stop = (e) => {
+    if (options.clone && activeEl !== element)
+      activeEl.remove();
+    activeEl.style.cursor = "grab";
+    isDragging = false;
+    if (touchendCallback) touchendCallback(e, offsetX, offsetY);
+  };
+
+  // Mouse
+  headerElement.addEventListener("mousedown", (e) => {
+    start(e.clientX, e.clientY, e);
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  });
+
+  function onMouseMove(e) {
+    move(e.clientX, e.clientY, e);
+  }
+  function onMouseUp(e) {
+    stop(e);
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+  }
+
+  // Touch
+  headerElement.addEventListener("touchstart", (e) => {
+    dragTimer = setTimeout(() => {
+      const touch = e.touches[0];
+      start(touch.clientX, touch.clientY, e);
+    }, 500);
+  }, { passive: false });
+
+  headerElement.addEventListener("touchmove", (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    move(touch.clientX, touch.clientY, e);
+  }, { passive: false });
+
+  headerElement.addEventListener("touchend", (e) => {
+    clearTimeout(dragTimer);
+    stop(e);
+  });
+}
+
+function setClassOnElements(parent, query, type, classes) {
+  for (let item of parent.querySelectorAll(query)) item.classList[type](classes);
+}
+
+function getElementPosition(element, offset=false) {
+  const rect = element.getBoundingClientRect();
+
+  return {
+    top: rect.top + window.scrollY,
+    right: rect.right, bottom: rect.bottom,
+    left: rect.left + window.scrollX
+  };
+}
+
+function getElementsWithScroll(parent=document, query='*') {
+  // https://stackoverflow.com/a/79303339
+  function hasScroller(element) {
+    const xOverflowing = element.offsetWidth < element.scrollWidth;
+    const yOverflowing = element.offsetHeight < element.scrollHeight;
+
+    if (!xOverflowing && !yOverflowing) return false;
+
+    const css = document.defaultView.getComputedStyle(element, null);
+
+    return (
+      (xOverflowing && (css['overflow-x'] == 'scroll' || css['overflow-x'] == 'auto')) ||
+      (yOverflowing && (css['overflow-y'] == 'scroll' || css['overflow-y'] == 'auto'))
+    );
+  }
+
+  return Array.from([...parent.querySelectorAll(query)].filter(hasScroller));
+}
+
+async function waitElement(query, interval=1000, tries=50, i=0) {
+  if (document.querySelector(query)) return true;
+  if (i >= tries) return false;
+
+  await new Promise(resolve => setTimeout(resolve, interval));
+  return waitElement(query, interval, tries, i+1);
+}
+
+function touchmoveDelay(touchmoveCallback) {
+  let runTime = Date.now();
+
+  return (deltaX, deltaY, direction, scale=false) => {
+    let currentTime = Date.now();
+    if (currentTime - runTime < 100) return;
+
+    runTime = currentTime;
+    touchmoveCallback(deltaX, deltaY, direction, scale);
+  };
+}
+
+async function pinchElement(element, touchmoveCallback=false) {
+  // https://stackoverflow.com/questions/74010960/how-to-implement-pinch-zoom-in-zoom-out-using-javascript
+  let start = {}, lastScale;
+
+  const distance = (event) => {
+    return Math.hypot(event.touches[0].pageX - event.touches[1].pageX,
+      event.touches[0].pageY - event.touches[1].pageY);
+  };
+
+  element.addEventListener('touchstart', (event) => {
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      start.x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+      start.y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+      start.distance = distance(event);
+    }
+  });
+
+  element.addEventListener('touchmove', (event) => {
+    if (event.touches.length === 2 && touchmoveCallback) {
+      event.preventDefault();
+
+      let scale = event.scale;
+      if (!scale) {
+        const deltaDistance = distance(event);
+        scale = deltaDistance / start.distance;
+      }
+
+      // Calculate how much the fingers have moved on the X and Y axis
+      const deltaX = (((event.touches[0].pageX + event.touches[1].pageX) / 2) - start.x) * 2; // x2 for accelerated movement
+      const deltaY = (((event.touches[0].pageY + event.touches[1].pageY) / 2) - start.y) * 2; // x2 for accelerated movement
+
+      touchmoveCallback(deltaX, deltaY, ((scale - lastScale > 0) ? 'Up' : 'Down'), scale);
+      lastScale = scale;
+    }
+  });
+
+  //element.addEventListener('touchend', (event) => {});
+}
+
+async function wheelElement(element, touchmoveCallback=false, useCtrl=false) {
+  element.addEventListener('wheel', (event) => {
+    if (!touchmoveCallback || (useCtrl && !event.ctrlKey)
+    || Number.isInteger(event.deltaY)) return;
+
+    event.preventDefault();
+    touchmoveCallback(event.deltaX, event.deltaY, ((event.deltaY < 0) ? 'Up' : 'Down'));
+  }, { passive: false });
+}

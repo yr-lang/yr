@@ -1,0 +1,25 @@
+[[ attributes=["teste1", "teste2"]; setters=["ciyr:a1"]
+!! @wrapper
+
+++
+
+_ .teste-a1
+  ___ .teste-inner
+_ .teste2
+  _a .teste-a href="oi"
+  _img .teste-img src="%/api/teste"
+  Teste A1
+
+##
+
+.teste-a1 {
+  min-height: 20px;
+  background: red;
+}
+
+@>
+
+_@wrapper(Ciyr, A1) {
+  console.log('oiiii');
+  console.log(element._config, _config);
+@}

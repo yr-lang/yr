@@ -1,0 +1,21 @@
+""
+
+## calculateTime()
+
+type: closure
+returns: function
+
+Upon calling it's return value, gets the time passed, in seconds, since it was
+called, upon calling again. Keeps the start value for new calls to use for many
+calls at the same time.
+
+@&
+
+function calculateExecutionTime() {
+  const start = Date.now();
+
+  return function() {
+    const end = Date.now();
+    return (end - start) / 1000;
+  };
+}

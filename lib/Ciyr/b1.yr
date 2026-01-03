@@ -1,0 +1,21 @@
+><
+
+_
+  _ciyr/b1 .teste1
+    Oi
+  _ciyr/b1 .teste2
+    _ .teste3
+      Boi
+
+||
+
+_
+  _ciyr/b1 .teste1
+    _ .teste
+    _ .teste2
+    Oi
+  _ciyr/b1 .teste2
+    _ .teste
+    _ .teste2
+    _ .teste3
+      Boi

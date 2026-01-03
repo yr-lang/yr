@@ -1,0 +1,24 @@
+[[ test_tag="''"
+
+><
+
+_yrci/wrapper .upper-wrapper att={{ oi: boi }}
+  _ .inner-wrapper type=""
+    _ .inner-inner-wrapper
+  _ .inner-wrapper2
+
+  _yrci/wrapperext .upper-wrapper2
+    _ .inner-wrapper-ext
+    _ .inner-wrapper-ext2
+
+_ .teste4
+
+||
+
+<div class="upper-wrapper">
+  <div class="wrapper">
+    <div class="wrapper-container">
+      <div class="inner-wrapper"></div>
+    </div>
+  </div>
+</div>

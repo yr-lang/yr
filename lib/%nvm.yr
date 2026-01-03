@@ -1,0 +1,18 @@
+**
+
+___common
+
+set_nvm() {
+  if [[ $(node -v) != "$1" ]]; then
+    export NVM_DIR=$HOME/.nvm
+    source $NVM_DIR/nvm.sh
+
+    if [[ $(nvm ls | grep $1) == "" ]]; then
+      nvm install $1
+    else
+      nvm use $1
+    fi
+  fi
+
+  if [[ "$2" == "-i" ]] && [[ ! -d 'node_modules' ]]; then npm i; fi
+}

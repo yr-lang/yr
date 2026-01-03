@@ -1,0 +1,35 @@
+**
+
+___common
+
+gh-pages() {
+  if [[ -z $1 ]]; then set -- "www"; fi
+  CNAME=$(echo $_CONFIG | jq -r .setters.web.cname)
+
+  cd $_PROJECT_PATH/
+  if [[ ! -d .git ]]; then
+    git_name=$(echo $_CONFIG | jq -r .config.deploy)
+    git clone https://github.com/mbinaryhost/$git_name
+    mv $git_name/.git .
+    rm -rf $git_name
+  fi
+
+  git add .
+  git commit -m "# DEPLOY"
+  git push -f origin main
+
+  git branch -D gh-pages
+  git checkout -b gh-pages
+
+  mkdir aux/
+  mv {*,.[^.]*,..?*} aux/
+  mv aux/$1/{*,.[^.]*,..?*} aux/.git .
+  rm -rf aux/
+
+  echo $CNAME > CNAME
+
+  git add .
+  git commit -m "# DEPLOY"
+  git push -f origin gh-pages
+  git checkout main
+}

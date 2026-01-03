@@ -1,0 +1,13 @@
+>>
+
+_meta charset="UTF-8"
+_meta content="width=device-width, initial-scale=1" name="viewport"
+
+##
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  overscroll-behavior-x: none;
+}
