@@ -1129,7 +1129,9 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
         sections.parsedapp += sections[item].join('');
     }
 
-    sections.parsedcss += '\n' + sections.wrappercss;
+    sections.parsedcss += '\n' + sections.wrappercss
+      .replace(/\s*!important;/g, ';').replace(/;/g, ' !important;');
+
     if (sections.cssfooter && !sections.parsedcss.includes(sections.cssfooter))
       sections.parsedcss += '\n' + sections.cssfooter;
 
@@ -1314,7 +1316,7 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
 
               for (let option in json[item][value][key]) // selector
                 css += `${' '.repeat(indentation + 2)}${option}`
-                  + `: ${json[item][value][key][option]} !important;\n`
+                  + `: ${json[item][value][key][option]};\n`
 
               css += `${' '.repeat(indentation)}}\n`;
             }
@@ -1405,7 +1407,7 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
     }
 
     if (sections.wrapperjscustom)
-      sections.parsedjs += sections.wrapperjscustom;
+      sections.parsedjs += '\n' + sections.wrapperjscustom;
 
     if (!config.lang) config.lang = 'en-US';
 
