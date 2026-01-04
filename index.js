@@ -308,6 +308,27 @@ function _updateBlockAttributes(code, referenceId, attributes) {
     const app = { jsapp: [], appheader: [], app: [], appfooter: [] };
     let devops = [];
 
+    const buildWithPages = [];
+    if (result.config.config.buildWith) {
+      for (let value of result.config.config.buildWith) {
+        let hasView;
+        for (let key of views) {
+          if (key.wrapper.option === utils.capitalize(value) + '_') {
+            hasView = true;
+            break;
+          }
+        }
+
+        if (hasView) continue;
+
+        buildWithPages.push({ wrapper: {
+          category: false, option: utils.capitalize(value) + '_',
+          yr: `!! &authapp\n><\n_${value.toLowerCase()}/app`
+        } });
+      }
+    }
+    if (buildWithPages.length > 0) viewsPaths.push({ pages: buildWithPages });
+
     for (let value of viewsPaths) {
       let pages = [], ignoreViews;
 
@@ -1115,7 +1136,8 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
     sections.parsedyr = {
       extensions: '',
       wrappercss: sections.wrappercss,
-      wrapperjs: sections.wrapperjs
+      wrapperjs: sections.wrapperjs,
+      wrapperjscustom: sections.wrapperjscustom
     };
 
     for (let item of sections.extensions.split('\n')) {
@@ -1381,6 +1403,9 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
       newjs += '} catch(error) {/* pass */}\n';
       sections.parsedjs = newjs + sections.parsedjs;
     }
+
+    if (sections.wrapperjscustom)
+      sections.parsedjs += sections.wrapperjscustom;
 
     if (!config.lang) config.lang = 'en-US';
 

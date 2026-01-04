@@ -7,6 +7,7 @@ module.exports = {
   '@@': { name: 'js', parser: 'string', default: '', merge: true },
   '@<': { name: 'jsfooter', parser: 'string', default: '', merge: true },
   '>@': { name: 'wrapperjs', parser: 'string', default: '', merge: true },
+  '<@': { name: 'wrapperjscustom', parser: 'string', default: '', merge: true },
   '##': { name: 'css', parser: 'string', default: '', merge: true },
   '""': { name: 'documentation', parser: 'string', default: '' },
   '--': { name: 'modules', parser: 'object', default: [], merge: true },
