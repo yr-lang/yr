@@ -1129,18 +1129,14 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
         sections.parsedapp += sections[item].join('');
     }
 
-    sections.parsedcss += '\n' + sections.wrappercss
-      .replace(/\s*!important;/g, ';').replace(/;/g, ' !important;');
+    sections.parsedcss += '\n' + sections.wrappercsscustom + '\n'
+      + sections.wrappercss.replace(/\s*!important;/g, ';')
+        .replace(/;/g, ' !important;');
 
     if (sections.cssfooter && !sections.parsedcss.includes(sections.cssfooter))
       sections.parsedcss += '\n' + sections.cssfooter;
 
-    sections.parsedyr = {
-      extensions: '',
-      wrappercss: sections.wrappercss,
-      wrapperjs: sections.wrapperjs,
-      wrapperjscustom: sections.wrapperjscustom
-    };
+    sections.parsedyr = { extensions: '' };
 
     for (let item of sections.extensions.split('\n')) {
       if (!item.startsWith('!! !')) item = item.replace(/!! /, '!! !');
@@ -1186,6 +1182,14 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
       if (!sections[`parsed${value}`]) sections[`parsed${value}`] = '';
       if (!sections.parsedyr[value]) sections.parsedyr[value] = '';
     }
+
+    sections.parsedyr = {
+      ...sections.parsedyr,
+      wrappercss: sections.wrappercss,
+      wrappercsscustom: sections.wrappercsscustom,
+      wrapperjs: sections.wrapperjs,
+      wrapperjscustom: sections.wrapperjscustom
+    };
 
     if (sections.parsedcss !== '')
       sections.parsedcss = this.macros(sections, 'parsedcss');

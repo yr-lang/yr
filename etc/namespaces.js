@@ -19,6 +19,7 @@ module.exports = {
   '##': { name: 'css', parser: 'string', default: '', merge: true },
   '#<': { name: 'cssfooter', parser: 'string', default: '', merge: true },
   '>#': { name: 'wrappercss', parser: 'string', default: '', merge: true },
+  '<#': { name: 'wrappercsscustom', parser: 'string', default: '', merge: true },
   '|@': { name: 'jstests', parser: 'string', default: '', merge: true },
   '||': { name: 'assert', parser: 'string', default: '', merge: true },
   '&>': { name: 'appheader', parser: 'array', default: [], merge: true },
