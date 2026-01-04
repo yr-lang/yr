@@ -1379,6 +1379,38 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
       }
 
       sections.parsedyr.wrappercss = parseJsonToCss(newCss);
+
+      const templateRegex = id =>
+        new RegExp(`\\{\\{[^}]*?\\.?${id}\\b[^}]*?\\}\\}`);
+
+      for (let item of ['header', 'body', 'footer', 'scripts']) {
+        for (let value of sections.parsedyr[item].split('\n')) {
+          const match = value.match(/(?:\.|\.\{\{)\s*(__[A-Za-z0-9_-]+)/);
+          if (!match) continue;
+
+          const elementId = match[1];
+          let exists;
+
+          for (let key of Object.keys(sections.parsedyr)) {
+            const content = sections.parsedyr[key];
+
+            if (!key.includes('wrapper')) {
+              exists = templateRegex(elementId).test(content);
+            } else {
+              exists = content.includes(elementId);
+            }
+
+            if (exists) break;
+          }
+
+          if (!exists) {
+            const newLine = value.split(match[0]).join('').trimEnd();
+
+            sections.parsedyr[item] =
+              sections.parsedyr[item].split(value).join(newLine);
+          }
+        }
+      }
     }
 
     if (sections.parsedapp !== '')
