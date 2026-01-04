@@ -14,7 +14,7 @@ The goal of `yr` is to:
 
 # Documentation
 
-Read `docs/` for more information about syntax, api, etc...
+Read [docs](https://github.com/yr-lang/docs) for more information about syntax, api, etc...
 
 # License
 
