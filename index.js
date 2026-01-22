@@ -311,9 +311,12 @@ function _updateBlockAttributes(code, referenceId, attributes) {
     const buildWithPages = [];
     if (result.config.config.buildWith) {
       for (let value of result.config.config.buildWith) {
+        const appName = (value.includes(':')) ? value.split(':')[0] : value;
+        const viewName = (value.includes(':')) ? value.split(':')[1] : value;
+
         let hasView;
         for (let key of views) {
-          if (key.wrapper.option === utils.capitalize(value) + '_') {
+          if (key.wrapper.option === utils.capitalize(viewName) + '_') {
             hasView = true;
             break;
           }
@@ -322,8 +325,8 @@ function _updateBlockAttributes(code, referenceId, attributes) {
         if (hasView) continue;
 
         buildWithPages.push({ wrapper: {
-          category: false, option: utils.capitalize(value) + '_',
-          yr: `!! &authapp\n><\n_${value.toLowerCase()}/app`
+          category: false, option: utils.capitalize(viewName) + '_',
+          yr: `!! &authapp\n><\n_${appName.toLowerCase()}/app`
         } });
       }
     }
@@ -421,7 +424,6 @@ const window = {
   __api: '',
 };
 const fs = require('fs');
-const yr = require(\`\${process.env.HOME}/.yr/yr\`);
 let projectPath = '${parsePaths(projectPath)}';
 const _globals = [];
 function parsePaths(newPaths) {
@@ -449,8 +451,7 @@ for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
   } else {
     env[item] = parsePaths(env[item]);
   }
-}
-yr.set(env);\n` + result.app;
+}\n` + result.app;
 
     result.app = this.macros(result, 'app');
 
@@ -571,9 +572,9 @@ dist/`);
 
     const scrConfig = (lang) => {
       if (lang === 'bash') {
-        return `_BUILDS=${parsePaths(env.BUILDS)}
-_PROJECT_PATH=${parsePaths(projectPath)}
-_CONFIG=$(cat $_PROJECT_PATH/yrconfig.json)`;
+        return `_BUILDS="${parsePaths(env.BUILDS).replace(/~/, '$HOME')}"
+_PROJECT_PATH="${parsePaths(projectPath).replace(/~/, '$HOME')}"
+_CONFIG=$(cat "$_PROJECT_PATH/yrconfig.json")`;
       } else if (lang.startsWith('python')) {
         return `from pathlib import Path
 import json
@@ -606,8 +607,8 @@ const _CONFIG = require(\`\${_PROJECT_PATH}/yrconfig.json\`);`;
       shebang = '#!' + ((lang === 'bash') ? '/bin/' : '/usr/bin/env ') + lang;
 
       return `${shebang}\n${scrConfig(lang)}${(addDist && lang === 'bash') ? `
-rm -r $_PROJECT_PATH/dist/
-cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
+rm -r "$_PROJECT_PATH/dist/"
+cp -r "$_PROJECT_PATH/www/" "$_PROJECT_PATH/dist/"` : ''}\n`;
     };
 
     const getDefaultDevops = (name) => this.parse(fs.readFileSync(`${
@@ -1384,37 +1385,37 @@ cp -r $_PROJECT_PATH/www/ $_PROJECT_PATH/dist/` : ''}\n`;
 
       sections.parsedyr.wrappercss = parseJsonToCss(newCss);
 
-      const templateRegex = id =>
-        new RegExp(`\\{\\{[^}]*?\\.?${id}\\b[^}]*?\\}\\}`);
+      //const templateRegex = id =>
+      //  new RegExp(`\\{\\{[^}]*?\\.?${id}\\b[^}]*?\\}\\}`);
 
-      for (let item of ['header', 'body', 'footer', 'scripts']) {
-        for (let value of sections.parsedyr[item].split('\n')) {
-          const match = value.match(/(?:\.|\.\{\{)\s*(__[A-Za-z0-9_-]+)/);
-          if (!match) continue;
+      //for (let item of ['header', 'body', 'footer', 'scripts']) {
+      //  for (let value of sections.parsedyr[item].split('\n')) {
+      //    const match = value.match(/(?:\.|\.\{\{)\s*(__[A-Za-z0-9_-]+)/);
+      //    if (!match) continue;
 
-          const elementId = match[1];
-          let exists;
+      //    const elementId = match[1];
+      //    let exists;
 
-          for (let key of Object.keys(sections.parsedyr)) {
-            const content = sections.parsedyr[key];
+      //    for (let key of Object.keys(sections.parsedyr)) {
+      //      const content = sections.parsedyr[key];
 
-            if (!key.includes('wrapper')) {
-              exists = templateRegex(elementId).test(content);
-            } else {
-              exists = content.includes(elementId);
-            }
+      //      if (!key.includes('wrapper')) {
+      //        exists = templateRegex(elementId).test(content);
+      //      } else {
+      //        exists = content.includes(elementId);
+      //      }
 
-            if (exists) break;
-          }
+      //      if (exists) break;
+      //    }
 
-          if (!exists) {
-            const newLine = value.split(match[0]).join('').trimEnd();
+      //    if (!exists) {
+      //      const newLine = value.split(match[0]).join('').trimEnd();
 
-            sections.parsedyr[item] =
-              sections.parsedyr[item].split(value).join(newLine);
-          }
-        }
-      }
+      //      sections.parsedyr[item] =
+      //        sections.parsedyr[item].split(value).join(newLine);
+      //    }
+      //  }
+      //}
     }
 
     if (sections.parsedapp !== '')
@@ -1464,7 +1465,7 @@ function require(name) {
 function setGlobal(name, item) {
   //window[name] = item;
 }
-${sections.jsapp.join('')}
+${sections.parsedjs}
 ${sections.appheader.join('')}
 ${sections.apptests.join('')}
 } catch(error) { console.log(error); }
@@ -1476,14 +1477,14 @@ ${sections.apptests.join('')}
 ${sections.pixel}
 <head>
 ${sections.parsedheader}
-${(config.name) ? `  <link rel="stylesheet" href="/${config.cssname}.css">` : `  <style>\n${sections.parsedcss}\n</style>`}
+${(config.name) ? `  <link rel="stylesheet" href="./${config.cssname}.css">` : `  <style>\n${sections.parsedcss}\n</style>`}
 </head>
 <body style="display: none">
 ${sections.parsedbody}
 ${sections.parsedfooter}
 </body>
 ${sections.parsedscripts}
-<script id="psj"${(config.name) ? ` src="/${config.jsname}.js">`
+<script id="psj"${(config.name) ? ` src="./${config.jsname}.js">`
   : `>\n${sections.parsedjs}\n`
 }</script>
 <script>

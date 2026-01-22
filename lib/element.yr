@@ -14,6 +14,10 @@ _@elementListener(#query, #parent=document, #listener='click') {
   });
 @}
 
+_@eqs(#name, #container, #query, #type='') {
+  const #name = #container.querySelector(#query);
+@}
+
 @>
 
 function eventListener(element, action, callback) {
@@ -167,7 +171,7 @@ function dragElement(
 ) {
   let headerElement = element.querySelector(options.headerSelector) || element;
   let isDragging = false, dragTimer;
-  let offsetX = 0, offsetY = 0;
+  let offsetX = 0, offsetY = 0, X = 0, Y = 0;
   let activeEl = element;
 
   const createClone = () => {
@@ -185,6 +189,7 @@ function dragElement(
   };
 
   const start = (x, y, e) => {
+    X = x; Y = y;
     activeEl = (!options.clone) ? element : createClone();
 
     const rect = activeEl.getBoundingClientRect();
@@ -193,14 +198,15 @@ function dragElement(
     isDragging = true;
 
     activeEl.style.cursor = "grabbing";
-    if (touchstartCallback) touchstartCallback(e, offsetX, offsetY);
+    if (touchstartCallback) touchstartCallback(e, offsetX, offsetY, X, Y);
   };
 
   const move = (x, y, e) => {
     if (!isDragging) return;
+    X = x; Y = y;
     activeEl.style.left = x - offsetX + "px";
     activeEl.style.top = y - offsetY + "px";
-    if (touchmoveCallback) touchmoveCallback(e, offsetX, offsetY);
+    if (touchmoveCallback) touchmoveCallback(e, offsetX, offsetY, X, Y);
   };
 
   const stop = (e) => {
@@ -208,7 +214,7 @@ function dragElement(
       activeEl.remove();
     activeEl.style.cursor = "grab";
     isDragging = false;
-    if (touchendCallback) touchendCallback(e, offsetX, offsetY);
+    if (touchendCallback) touchendCallback(e, offsetX, offsetY, X, Y);
   };
 
   // Mouse

@@ -33,3 +33,28 @@ gh-pages() {
   git push -f origin gh-pages
   git checkout main
 }
+
+gh-pages_fix() {
+  set -e
+
+  OWNER="mwhost"
+  REPO_NAME="QuEFR2eQhATKHYe"
+  REPO_URL="https://github.com/${OWNER}/${REPO_NAME}.git"
+
+  git init
+  git checkout --orphan gh-pages
+
+  git add .
+  git commit -m "# DEPLOY" || true
+
+  git remote remove origin 2>/dev/null || true
+  git remote add origin "$REPO_URL"
+
+  git push --force origin gh-pages
+
+  # Enable GitHub Pages (idempotent)
+  gh api repos/${OWNER}/${REPO_NAME}/pages \
+    -X PUT \
+    -F source.branch=gh-pages \
+    2>/dev/null || true
+}
