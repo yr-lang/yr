@@ -526,15 +526,8 @@ dist/`);
 
       if (projectName && assetsPath) {
         for (let item of fs.readdirSync(assetsPath)) {
-          if (item.startsWith(`${projectName}__`)) {
-            const projectAssetsPath = `${projectPath}/www/assets/static`;
-
-            if (!fs.existsSync(projectAssetsPath))
-              fs.mkdirSync(projectAssetsPath, { recursive: true });
-
-            fs.writeFileSync(`${projectAssetsPath}/${item}`,
-              fs.readFileSync(`${assetsPath}/${item}`));
-          }
+          fs.writeFileSync(`${projectPath}/www/${item}`,
+            fs.readFileSync(`${assetsPath}/${item}`));
         }
       }
 
