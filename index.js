@@ -40,89 +40,89 @@ function parsePaths(newPaths, useWildcard=false) {
 module.exports = {
   env,
   mergeYrSections(sections, extensions=false) {
-function _updateBlockAttributes(code, referenceId, attributes) {
-  function buildAttributes(obj) {
-    const list = [];
-    for (const key in obj) {
-      if (obj[key] != null) {
-        let k = key.toString();
-        let v = obj[key].toString();
-        const quotesK = k.includes('"') ? "'" : '"';
-        const quotesV = v.includes('"') ? "'" : '"';
-        k = k.includes(",") || k.includes(" ") ? `${quotesK}${k}${quotesK}` : k;
-        v = v.includes(",") || v.includes(" ") ? `${quotesV}${v}${quotesV}` : v;
-        list.push(`${k}: ${v}`);
-      }
-    }
-    return list.length ? `att={{ ${list.join(", ")} }}` : null;
-  }
-
-  const newAtt = buildAttributes(attributes);
-  if (!newAtt) return code;
-
-  const lines = code.split("\n");
-
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-
-    // Find first token (first non-whitespace)
-    let firstIdx = 0;
-    while (firstIdx < line.length && /\s/.test(line[firstIdx])) firstIdx++;
-    if (firstIdx >= line.length) continue;
-
-    let tokenEnd = firstIdx;
-    while (tokenEnd < line.length && !/\s/.test(line[tokenEnd])) tokenEnd++;
-    const firstToken = line.slice(firstIdx, tokenEnd);
-
-    // Validate first token
-    const core = firstToken.startsWith("_!") ? firstToken.slice(2) : firstToken.slice(1);
-    const slashIdx = core.indexOf("/");
-    if (slashIdx <= 0 || slashIdx >= core.length - 1) continue;
-
-    // Find the last dot-segment sequence that contains the referenceId
-    const dotRegex = new RegExp(`\\.${referenceId}(?:\\.[\\w]+)*`, "g");
-    let match;
-    let lastDotStart = -1;
-    let lastDotEnd = -1;
-    while ((match = dotRegex.exec(line)) !== null) {
-      lastDotStart = match.index;
-      lastDotEnd = match.index + match[0].length;
-    }
-    if (lastDotStart === -1) continue;
-
-    // Check for existing att={{ … }} after the lastDotEnd
-    let attStart = line.indexOf("att={{", lastDotEnd);
-    if (attStart >= 0) {
-      // Find the matching closing }} while respecting quotes
-      let iChar = attStart + 6;
-      let inSingle = false, inDouble = false;
-      let attEnd = -1;
-      while (iChar < line.length - 1) {
-        const ch = line[iChar];
-        if (ch === "'" && !inDouble) inSingle = !inSingle;
-        else if (ch === '"' && !inSingle) inDouble = !inDouble;
-        else if (ch === "}" && line[iChar + 1] === "}" && !inSingle && !inDouble) {
-          attEnd = iChar + 2;
-          break;
+    function _updateBlockAttributes(code, referenceId, attributes) {
+      function buildAttributes(obj) {
+        const list = [];
+        for (const key in obj) {
+          if (obj[key] != null) {
+            let k = key.toString();
+            let v = obj[key].toString();
+            const quotesK = k.includes('"') ? "'" : '"';
+            const quotesV = v.includes('"') ? "'" : '"';
+            k = k.includes(",") || k.includes(" ") ? `${quotesK}${k}${quotesK}` : k;
+            v = v.includes(",") || v.includes(" ") ? `${quotesV}${v}${quotesV}` : v;
+            list.push(`${k}: ${v}`);
+          }
         }
-        iChar++;
+        return list.length ? `att={{ ${list.join(", ")} }}` : null;
       }
-      if (attEnd > attStart) {
-        line = line.slice(0, attStart) + newAtt + line.slice(attEnd);
+
+      const newAtt = buildAttributes(attributes);
+      if (!newAtt) return code;
+
+      const lines = code.split("\n");
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+
+        // Find first token (first non-whitespace)
+        let firstIdx = 0;
+        while (firstIdx < line.length && /\s/.test(line[firstIdx])) firstIdx++;
+        if (firstIdx >= line.length) continue;
+
+        let tokenEnd = firstIdx;
+        while (tokenEnd < line.length && !/\s/.test(line[tokenEnd])) tokenEnd++;
+        const firstToken = line.slice(firstIdx, tokenEnd);
+
+        // Validate first token
+        const core = firstToken.startsWith("_!") ? firstToken.slice(2) : firstToken.slice(1);
+        const slashIdx = core.indexOf("/");
+        if (slashIdx <= 0 || slashIdx >= core.length - 1) continue;
+
+        // Find the last dot-segment sequence that contains the referenceId
+        const dotRegex = new RegExp(`\\.${referenceId}(?:\\.[\\w]+)*`, "g");
+        let match;
+        let lastDotStart = -1;
+        let lastDotEnd = -1;
+        while ((match = dotRegex.exec(line)) !== null) {
+          lastDotStart = match.index;
+          lastDotEnd = match.index + match[0].length;
+        }
+        if (lastDotStart === -1) continue;
+
+        // Check for existing att={{ … }} after the lastDotEnd
+        let attStart = line.indexOf("att={{", lastDotEnd);
+        if (attStart >= 0) {
+          // Find the matching closing }} while respecting quotes
+          let iChar = attStart + 6;
+          let inSingle = false, inDouble = false;
+          let attEnd = -1;
+          while (iChar < line.length - 1) {
+            const ch = line[iChar];
+            if (ch === "'" && !inDouble) inSingle = !inSingle;
+            else if (ch === '"' && !inSingle) inDouble = !inDouble;
+            else if (ch === "}" && line[iChar + 1] === "}" && !inSingle && !inDouble) {
+              attEnd = iChar + 2;
+              break;
+            }
+            iChar++;
+          }
+          if (attEnd > attStart) {
+            line = line.slice(0, attStart) + newAtt + line.slice(attEnd);
+            lines[i] = line;
+            continue;
+          }
+        }
+
+        // Insert att={{ … }} after last dot-segment, preserving trailing spaces
+        let insertPos = lastDotEnd;
+        while (insertPos < line.length && /\s/.test(line[insertPos])) insertPos++;
+        line = line.slice(0, lastDotEnd) + " " + newAtt + line.slice(lastDotEnd);
         lines[i] = line;
-        continue;
       }
+
+      return lines.join("\n");
     }
-
-    // Insert att={{ … }} after last dot-segment, preserving trailing spaces
-    let insertPos = lastDotEnd;
-    while (insertPos < line.length && /\s/.test(line[insertPos])) insertPos++;
-    line = line.slice(0, lastDotEnd) + " " + newAtt + line.slice(lastDotEnd);
-    lines[i] = line;
-  }
-
-  return lines.join("\n");
-}
 
     let result = '';
     if (extensions) result += extensions + '\n';
@@ -601,7 +601,8 @@ const _CONFIG = require(\`\${_PROJECT_PATH}/yrconfig.json\`);`;
 
       return `${shebang}\n${scrConfig(lang)}${(addDist && lang === 'bash') ? `
 rm -r "$_PROJECT_PATH/dist/"
-cp -r "$_PROJECT_PATH/www/" "$_PROJECT_PATH/dist/"` : ''}\n`;
+cp -r "$_PROJECT_PATH/www/" "$_PROJECT_PATH/dist/"
+cp -r "$_PROJECT_PATH/static/." "$_PROJECT_PATH/dist/"` : ''}\n`;
     };
 
     const getDefaultDevops = (name) => this.parse(fs.readFileSync(`${
@@ -1024,14 +1025,14 @@ cp -r "$_PROJECT_PATH/www/" "$_PROJECT_PATH/dist/"` : ''}\n`;
         (sections.varsAux) ? `${sections.varsAux}\n\n` : ''
       }>+\n\n${sections.wrappersAux}`, { sections });
 
-        if (!sections.wrappers[config.wrapper])
-          sections.wrappers[config.wrapper] = {};
+      if (!sections.wrappers[config.wrapper])
+        sections.wrappers[config.wrapper] = {};
 
-        if (!sections.wrappers[config.wrapper].parsed)
-          sections.wrappers[config.wrapper].parsed = {};
+      if (!sections.wrappers[config.wrapper].parsed)
+        sections.wrappers[config.wrapper].parsed = {};
 
-        if (!sections.wrappers[config.wrapper].vars)
-          sections.wrappers[config.wrapper].vars = {};
+      if (!sections.wrappers[config.wrapper].vars)
+        sections.wrappers[config.wrapper].vars = {};
 
       for (let item of ['header', 'body', 'footer', 'scripts']) {
         sections.wrappers[config.wrapper].parsed[item] = extension[item];
