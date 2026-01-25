@@ -313,7 +313,7 @@ module.exports = function(line, sections, section, state, lineNumber, config={})
 
         let redone;
         try {
-          redone = !sections.wrapper[wrapperName].redone;
+          redone = !sections.wrappers[wrapperName].redone;
         } catch(error) {/* pass */}
 
         if (sections.jsheader

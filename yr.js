@@ -1,22 +1,448 @@
-//@>
-
-function capitalize(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
+const crypto = {
+  generateToken(size=15, startWithNumber=false, complex=false) {
+    const chars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let token = '';
+    for (let i = 0; i < size; i++)
+      token += chars[Math.floor(Math.random() * chars.length)];
+    return (!isNaN(parseInt(token[0])) && !startWithNumber)
+      ? this.generateToken(size, startWithNumber, complex) : token;
+  }
 };
 
-function generateToken(size=15, startWithNumber=false, complex=false) {
-  const chars =
-    'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const utils = {
+  capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
+};
 
-  let token = '';
-  for (let i = 0; i < size; i++)
-    token += chars[Math.floor(Math.random() * chars.length)];
+const common = {
+  getWhiteSpace(indentation) {
+    try {
+      return new Array((indentation * 2) - 1).join(' ');
+    } catch(error) { return ''; }
+  }
+};
 
-  return (!isNaN(parseInt(token[0])) && !startWithNumber)
-    ? generateToken(size, startWithNumber, complex) : token;
+const namespaces = {
+  '@&': { name: 'jsapp', parser: 'array', default: [], merge: true },
+  '++': { name: 'wrappers', parser: 'auxstring', default: {}, merge: true },
+  '>+': { name: 'wrapperbody', parser: 'html', default: '', merge: true },
+  '><': { name: 'body', parser: 'html', default: '', merge: true },
+  '@>': { name: 'jsheader', parser: 'string', default: '', merge: true },
+  '@@': { name: 'js', parser: 'string', default: '', merge: true },
+  '@<': { name: 'jsfooter', parser: 'string', default: '', merge: true },
+  '>@': { name: 'wrapperjs', parser: 'string', default: '', merge: true },
+  '<@': { name: 'wrapperjscustom', parser: 'string', default: '', merge: true },
+  '""': { name: 'documentation', parser: 'string', default: '' },
+  '--': { name: 'modules', parser: 'object', default: [], merge: true },
+  '==': { name: 'pixel', parser: 'string', default: '', merge: true },
+  '>>': { name: 'header', parser: 'html', default: '', merge: true },
+  '<<': { name: 'footer', parser: 'html', default: '', merge: true },
+  '<>': { name: 'scripts', parser: 'html', default: '', merge: true },
+  '#>': { name: 'cssheader', parser: 'string', default: '', merge: true },
+  '##': { name: 'css', parser: 'string', default: '', merge: true },
+  '#<': { name: 'cssfooter', parser: 'string', default: '', merge: true },
+  '>#': { name: 'wrappercss', parser: 'string', default: '', merge: true },
+  '<#': { name: 'wrappercsscustom', parser: 'string', default: '', merge: true },
+  '|@': { name: 'jstests', parser: 'string', default: '', merge: true },
+  '||': { name: 'assert', parser: 'string', default: '', merge: true },
+  '&>': { name: 'appheader', parser: 'array', default: [], merge: true },
+  '&&': { name: 'app', parser: 'array', default: [], merge: true },
+  '&<': { name: 'appfooter', parser: 'array', default: [], merge: true },
+  '|&': { name: 'apptests', parser: 'array', default: [], merge: true },
+  '%%': { name: 'macros', parser: 'auxstring', default: {}, merge: true },
+  '**': { name: 'devops', parser: 'auxstring', default: [], merge: true }
+};
+
+const _parsers = {}, defaults = {}, mergers = {}, names = {};
+for (let item of Object.keys(namespaces)) {
+  names[namespaces[item].name] = item;
+  if (namespaces[item].parser)
+    _parsers[namespaces[item].name] = namespaces[item].parser;
+  if (namespaces[item].default || namespaces[item].default === '') {
+    defaults[namespaces[item].name] = namespaces[item].default;
+    if (namespaces[item].merge)
+      mergers[namespaces[item].name] = namespaces[item].default;
+  }
 }
 
-  function macros(sections, key, obfuscate=false) {
+function parseLine(line) {
+  const indentation = line.search(/\S/);
+
+  return {
+    indentation, line: line.trim(),
+    level: (indentation / 2) + 1,
+    whiteSpace: ' '.repeat(indentation)
+  };
+}
+
+function getElementAttributes(line) {
+  const attributes = {};
+  if (!line.includes(' att={{')) return attributes;
+  const parsedString = line.split(' att={{')[1].split('}}')[0];
+  const parse = {};
+  let parseKey = '', parseValue = '', parseType = 0, changedParseType = false;
+  let isString = false, shouldSplit = false, string = '';
+  let lastChar, stringKey;
+  for (let value of parsedString) {
+    if (value === ':' && parseType === 0 && !isString) {
+      parseType = 1;
+      isString = false;
+      changedParseType = true;
+      continue;
+    } else if (value === ',' && parseType === 1 && !isString) {
+      parseType = 0;
+      isString = false;
+      changedParseType = true;
+      parse[parseKey.trim()] = parseValue.trim();
+      parseKey = '';
+      parseValue = '';
+      continue;
+    }
+
+    changedParseType = false;
+    if (lastChar !== '\\' && value === '\\' && isString) {
+      lastChar = value;
+      continue;
+    }
+
+    if ((value === '"' || value === "'")
+    && (stringKey === value || !stringKey)) {
+      if (lastChar === '\\' && isString) {
+        if (parseType === 0) {
+          parseKey += value;
+        } else if (parseType === 1) {
+          parseValue += value;
+        }
+
+        lastChar = value;
+        continue;
+      }
+
+      if (value === stringKey) {
+        isString = false;
+        stringKey = false;
+        continue;
+      } else if (!stringKey) {
+        isString = true;
+        stringKey = value;
+        continue;
+      }
+    }
+
+    if (parseType === 0) {
+      parseKey += value;
+    } else if (parseType === 1) {
+      parseValue += value;
+    }
+
+    lastChar = value;
+  }
+
+  parse[parseKey.trim()] = parseValue.trim();
+  parseKey = '', parseValue = '';
+  return { ...attributes, ...parse };
+}
+
+function addIdToElement(line, config, elementId=false) {
+  if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
+    if (!elementId) elementId = '__' + crypto.generateToken(8);
+    if (!line.trim().startsWith('_')) elementId = '{{' + elementId;
+
+    let openCase, newLine = '', addedClass;
+    for (let item of line.split(' ')) {
+      if (item.endsWith('{{')) {
+        openCase = true;
+        newLine += item + ' ';
+        continue;
+      }
+
+      if (item.endsWith('}}') && openCase) {
+        openCase = false;
+        newLine += item + ' ';
+        continue;
+      }
+
+      if (!openCase && item.startsWith('.') && !addedClass) {
+        addedClass = true;
+        item = item.replace(/\./, `.${elementId}.`);
+      }
+
+      newLine += item + ' ';
+    }
+
+    newLine = newLine.trimEnd();
+    if (!addedClass) newLine += ` .${elementId}`;
+    line = newLine;
+  }
+
+  return line;
+}
+
+
+const parserFns = {
+  array(line, sections, section, state, lineNumber, config={}) {
+    if (state.sectionChanged) sections[section].push('')
+    sections[section][sections[section].length - 1] += line + '\n';
+  },
+  auxstring(line, sections, section, state, lineNumber, config={}) {
+    if (!sections[section + 'Aux']) sections[section + 'Aux'] = '';
+    sections[section + 'Aux'] += line + '\n';
+  },
+  nosection(line, sections, section, state, lineNumber, config={}) {
+    if (line.startsWith('--')) sections.modules =
+      [...sections.modules, ...line.slice(2).trim().split(',')];
+  },
+  string(line, sections, section, state, lineNumber, config={}) {
+    sections[section] += line + '\n';
+  },
+  html(line, sections, section, state, lineNumber, config={}) {
+    if (config.ignoreHtml) return;
+    if (!sections.yr[section]) sections.yr[section] = '';
+    const parsedLine = parseLine(line);
+    if (parsedLine.line.startsWith('//')) {
+      sections.yr[section] += line + '\n';
+      return;
+    }
+    if (parsedLine.line.endsWith('\\\\')) {
+      if (state.lineBreak) {
+        state.lineBreak.line = state.lineBreak.line + parsedLine.line.slice(0, -2);
+      } else {
+        state.lineBreak =
+          { ...parsedLine, line: parsedLine.line.slice(0, -2) };
+      }
+      return;
+    }
+    if (state.lineBreak) {
+      parsedLine.line = state.lineBreak.line + parsedLine.line;
+      line = state.lineBreak.line + line;
+      state.lineBreak = false;
+    }
+    if (!state.level) state.level = 0;
+    let yrParsedLine = (parsedLine.line.split(' ')[0].includes('/')
+    && !parsedLine.line.split(' ')[0].includes('_!') && parsedLine.line[0] === '_')
+      ? parsedLine.line.replace(/_/, '_!') : parsedLine.line;
+    let elementId = '__' + crypto.generateToken(8);
+    if (parsedLine.line.includes('.__')) {
+      elementId = '__' + parsedLine.line
+        .split('.__')[1].split(' ')[0].split('.')[0];
+    } else if (!parsedLine.line.trim().startsWith('_')
+    && parsedLine.line.includes('.{{__')) {
+      const split = parsedLine.line.split('.{{__');
+      elementId = '__' + split[1];
+      parsedLine.line = split[0].trimEnd();
+    }
+    yrParsedLine = addIdToElement(yrParsedLine, config, elementId);
+    let yrIndentation = 0, ignoreYr, wildCard = '', replaceYr;
+    if (state.wrapper.length > 0) {
+      let wrapper = state.wrapper[state.wrapper.length - 1];
+      if (parsedLine.indentation >= wrapper.reference) {
+        yrIndentation = wrapper.new - wrapper.reference + 2;
+        replaceYr = sections.yr[section].includes('#@#\n');
+      } else {
+        wrapper = state.wrapper[state.wrapper.length - 1];
+        sections.yr[section] = sections.yr[section].replace(/#@#\n/, '');
+        if (wrapper.wildCard) sections[section] += wrapper.wildCard + '\n';
+        state.wrapper.pop();
+      }
+    }
+    if (yrIndentation < 0) yrIndentation = 0;
+    const parsedYr = parsedLine.whiteSpace
+      + ' '.repeat(yrIndentation) + yrParsedLine.trim() + '\n';
+    if (replaceYr) {
+      sections.yr[section] = sections.yr[section]
+        .replace(/#@#\n/, parsedYr + '#@#\n');
+    } else {
+      sections.yr[section] += parsedYr;
+    }
+    if (parsedLine.indentation !== -1) {
+      if (parsedLine.indentation % 2 !== 0)
+        throw `-1: indentation error at line ${lineNumber}` + '';
+          ` (${config.name}.yr, ${config.project}):\n\n"""\n${line}\n"""`;
+      if (parsedLine.level > state.level + 1)
+        throw `-2: indentation error at line ${lineNumber}` + '' +
+          ` (${config.name}.yr, ${config.project}):\n\n"""\n${line}\n"""`;
+      if (parsedLine.level < state.level) {
+        for (let j = state.layers.length; j > parsedLine.level - 1; j--) {
+          if (!state.layers[j - 1]) continue;
+          sections[state.layers[j - 1].section] +=
+            state.layers[j - 1].whiteSpace + `</${state.layers[j - 1].tag}>\n`;
+          state.layers.pop();
+        }
+      } else if (parsedLine.level === state.level
+      && state.element && state.layers.length > 0) {
+        sections[state.layers[state.layers.length - 1].section] +=
+          `</${state.layers[state.layers.length - 1].tag}>\n`;
+        state.layers.pop();
+      }
+    }
+    if (state.layers.length > 0 && (state.sectionChanged
+    || state.layers[state.layers.length - 1].indentation === parsedLine.indentation))
+{  
+      for (let j = state.layers.length - 1; j >= 0; j--) {
+        if (j === -1) continue;
+        sections[state.layers[j].section] +=
+          state.layers[j].whiteSpace + `</${state.layers[j].tag}>\n`;
+        state.layers.pop();
+      }
+    }
+    if (parsedLine.line[0] === '_') {
+      const elementAttributes = getElementAttributes(parsedLine.line);
+      const attSplit = parsedLine.line.split(' att={{');
+      if (attSplit.length > 1)
+        parsedLine.line = attSplit[0] + attSplit[1].split('}}')[1];
+      const lineSplit = parsedLine.line.split(' ');
+      let tag = lineSplit.shift().substring(1);
+      if (tag === '') tag = 'div';
+      if (tag[0] === '_') {
+        tag = tag.replace(/__/, '');
+        if (!tag) tag = 'div';
+        wildCard += '<!--#@#-->';
+      }
+      let attributes = '', id = '', classes = '';
+      for (let item of lineSplit) {
+        if (item.startsWith('#')) {
+          id = ` id="${item.substring(1)}"`;
+        } else if (item.startsWith('.')) {
+          let ignoreCrypto;
+          if (item.includes('.__')) {
+            for (let value of item.split('\.')) {
+              if (value.startsWith('__')) {
+                ignoreCrypto = true;
+                break;
+              }
+            }
+          }
+          classes = ` class="${item.substring(1).split('.').join(' ')}"`;
+        } else {
+          attributes += ` ${item}`;
+        }
+      }
+      if (tag.includes('/')) {
+        const wrapper = tag.replace(/!/, '').split('/');
+        wrapper[0] = utils.capitalize(wrapper[0]);
+        wrapper[1] = utils.capitalize(wrapper[1]);
+        const wrapperName = wrapper.join('/');
+        yr.extend(wrapper, wrapperName, sections, state, { redoWrapper: true });
+        let newWrapper, wrapperIndentation;
+        if (!tag.includes('!')) {
+          newWrapper = {
+            section, reference: parsedLine.indentation + 2,
+            new: parsedLine.indentation, content: '', wildCard: '',
+            layers: JSON.parse(JSON.stringify(state.layers))
+          };
+          state.wrapper.push(newWrapper);
+          wrapperIndentation = parsedLine.indentation;
+        }
+        if (sections.wrappers[wrapperName]) {
+          elementAttributes.id = elementId;
+          elementAttributes.category = wrapper[0];
+          elementAttributes.option = wrapper[1];
+          let attributes = [];
+          try {
+            attributes = sections.wrappers[wrapperName].vars.attributes;
+          } catch(error) {
+            console.log(wrapperName);
+            console.log(sections.wrappers[wrapperName]);
+            console.log(parsedLine);
+            console.log(error);
+            throw error;
+          }
+          if (!attributes) attributes = sections.vars.attributes;
+          elementAttributes.attributes = attributes;
+          let redone;
+          try {
+            redone = !sections.wrappers[wrapperName].redone;
+          } catch(error) {/* pass */}
+          if (sections.jsheader
+          .includes(`function __${wrapperName.replace(/\//, '_')}(`)
+          && !sections.wrapperjs.includes(`"id":"${elementId}"`)) {
+            const wrapperjs =
+              `__${wrapperName.replace(/\//, '_')}(${JSON.stringify(elementAttributes)});\n`;
+            sections.wrapperjs += wrapperjs;
+          }
+          if (!tag.includes('!')) {
+            if (sections.wrappers[wrapperName].yrwrapperbody) {
+              for (let value of sections.wrappers[wrapperName]
+              .yrwrapperbody.split('\n')) {
+                if (value.trim() === '') continue;
+                value = addIdToElement(value, config);
+                if (yrIndentation % 2 !== 0) yrIndentation -= 1;
+                if (newWrapper.reference % 2 !== 0) newWrapper.reference -= 1;
+                if (newWrapper.new % 2 !== 0) newWrapper.new -= 1;
+                value = ' '.repeat(newWrapper.reference + yrIndentation)
+                  + value + '\n';
+                if (value.includes('___')) {
+                  value = value.replace(/___/, '_');
+                  value += '#@#\n';
+                  newWrapper.new = value.search(/\S/);
+                }
+                sections.yr[section] += value;
+              }
+            }
+            if (sections.wrappers[wrapperName].wrapperbody) {
+              const split = sections.wrappers[wrapperName].wrapperbody.split('<!--#@#-->\n');
+              if (split[1]) newWrapper.wildCard = split[1];
+              for (let _line of split[0].split('\n'))
+                wildCard += ' '.repeat(yrIndentation) + _line + '\n';
+            }
+          }
+        }
+        tag = 'div';
+        if (!classes) {
+          classes = ` class="${elementId}"`;
+        } else if (!classes.includes(elementId)) {
+          classes = classes.split('class="').join(`class="${elementId} `);
+        }
+      }
+      if (config.preview) {
+        if (!classes) {
+          classes = ` class="${elementId}"`;
+        } else if (!classes.includes(elementId)) {
+          classes = classes.split('class="').join(`class="${elementId} `);
+        }
+      }
+      attributes = `${id}${classes}${attributes}`.trim();
+      sections[section] += ' '.repeat(yrIndentation) + parsedLine.whiteSpace +
+        `<${tag} ${attributes}>\n${wildCard}\n`;
+      state.layers.push({ tag, section, ...parsedLine });
+      state.element = true;
+    } else {
+      if (section) {
+        if (section === 'header') {
+          sections[section] += parsedLine.whiteSpace + parsedLine.line + '\n';
+        } else {
+          let attributes = '';
+          if (config.preview) elementId += ' _yrtext';
+          sections[section] +=
+            `${parsedLine.whiteSpace}<span class="${elementId}"${attributes}>${parsedLine.line}</span>\n`;
+        }
+      }
+      state.element = false;
+    }
+    state.level = parsedLine.level;
+  }
+}
+
+const parsers = {
+  namespaces, tokens: Object.keys(namespaces),
+  parsers: _parsers, mergers, names,
+  defaults() { return JSON.parse(JSON.stringify(defaults)); },
+  parse(parser, line, sections, section, state, lineNumber, config) {
+    if (line === '') return;
+    const parserFn = parserFns[parser];
+    if (!parserFn) return;
+    parserFn(line, sections, section, state, lineNumber, config);
+  }
+};
+
+const core = {
+  set(libFn) { this.lib = libFn },
+  lib(category=false, option=false, parseConfig=false) {
+    return { yr: '++\n\n_' };
+  },
+  macros(sections, key, obfuscate=false) {
     if (key === 'yr' || !sections[key]) return sections[key];
     const currentMacros = [];
     let parsedCode = '';
@@ -118,625 +544,138 @@ function generateToken(size=15, startWithNumber=false, complex=false) {
     sections[key] = parsedCode;
     if (obfuscate) sections[key] = sections[key];//obfuscator.obfuscate(sections[key]);
     return sections[key];
-  }
+  },
+  aux(sections, extension) {
+    if (extension.devopsAux) {
+      let counter = 0, devopsSection;
+      for (let line of extension.devopsAux.split('\n')) {
+        if (counter === 0) {
+          counter = 1;
+          sections.devops.push({});
+        }
 
-function aux(sections, extension) {
-  if (extension.devopsAux) {
-    let counter = 0, devopsSection;
-    for (let line of extension.devopsAux.split('\n')) {
-      if (counter === 0) {
-        counter = 1;
-        sections.devops.push({});
-      }
-
-      if (line.startsWith('___')) {
-        devopsSection = line.substring(3);
-        counter = 0;
-        continue;
-      }
-
-      if (!devopsSection) devopsSection = 'build';
-
-      if (!sections.devops[sections.devops.length - 1][devopsSection])
-        sections.devops[sections.devops.length - 1][devopsSection] = '';
-
-      sections.devops[sections.devops.length - 1][devopsSection] +=
-        line + '\n';
-    }
-  }
-
-  if (extension.macrosAux) {
-    let counter = 0, macro = false;
-    for (let line of extension.macrosAux.split('\n')) {
-      if (line === '@}') {
-        if (counter === 1) {
+        if (line.startsWith('___')) {
+          devopsSection = line.substring(3);
           counter = 0;
-          macro = false;
           continue;
         }
 
-        counter--;
+        if (!devopsSection) devopsSection = 'build';
+
+        if (!sections.devops[sections.devops.length - 1][devopsSection])
+          sections.devops[sections.devops.length - 1][devopsSection] = '';
+
+        sections.devops[sections.devops.length - 1][devopsSection] +=
+          line + '\n';
       }
+    }
 
-      if (line.startsWith('_@') && line.endsWith('{')) {
-        counter++;
+    if (extension.macrosAux) {
+      let counter = 0, macro = false;
+      for (let line of extension.macrosAux.split('\n')) {
+        if (line === '@}') {
+          if (counter === 1) {
+            counter = 0;
+            macro = false;
+            continue;
+          }
 
-        if (counter === 1) {
-          line = line.replace(/ /g, '');
-          const name = line.split('(')[0];
-          let variables = line.split(`${name}(`)[1].slice(0, -2).split(',');
-          if (variables.length === 1 && variables[0] === '') variables = [];
-          sections.macros[name] = { content: '', variables };
-          macro = name;
-          continue;
+          counter--;
         }
+
+        if (line.startsWith('_@') && line.endsWith('{')) {
+          counter++;
+
+          if (counter === 1) {
+            line = line.replace(/ /g, '');
+            const name = line.split('(')[0];
+            let variables = line.split(`${name}(`)[1].slice(0, -2).split(',');
+            if (variables.length === 1 && variables[0] === '') variables = [];
+            sections.macros[name] = { content: '', variables };
+            macro = name;
+            continue;
+          }
+        }
+
+        if (macro) sections.macros[macro].content += line + '\n';
       }
-
-      if (macro) sections.macros[macro].content += line + '\n';
     }
-  }
-};
-
-function extend(wrapper, wrapperName, sections, state, config={}) {
-  if (!sections.parsedyr)
-    sections.parsedyr = { header: '', body: '', footer: '', scripts: '' };
-
-  try {
-    if (wrapperName.startsWith('!')) {
-      wrapper[0] = wrapper[0].replace(/!/, '');
-      wrapper[1] = wrapper[1].replace(/!/, '');
-      wrapperName = wrapperName.replace(/!/, '');
-      config.ignoreHtml = true;
-    }
-
-    if (!sections.wrapperjs) sections.wrapperjs = '';
-
-    if (sections.extensions.includes('!! ' + wrapperName +  '\n')) {
-      if (config.redoWrapper) {
-        const newWrapper = parse(`>+\n\n_${wrapperName.toLowerCase()}`, {
-          ignoreHtml: config.ignoreHtml
-        });
-
-        sections.wrappers[wrapperName] = newWrapper.wrappers[wrapperName];
-        sections.wrappers[wrapperName].redone = true;
-        sections.wrapperjs += newWrapper.wrapperjs;
-      }
-
-      return;
-    }
-
-    const _yr = sections.yr;
-    sections.yr = {};
-
-    const aux = {};
-    for (let item of ['header', 'body', 'footer', 'scripts']) {
-      aux[item] = sections[item];
-      sections[item] = '';
-    }
-
-    const code = (config.libFn) ? config.libFn(wrapper) : '++\n_';
-
-    const result = parse(code, {
-      sections, wrapper: `${wrapper.join('/')}`, ...config
-    });
-
-    sections.extensions += '!! ' + wrapperName + '\n';
-
-    if (!sections.wrappers[wrapperName])
-      sections.wrappers[wrapperName] = {};
-
-    if (!sections.wrappers[wrapperName].parsed)
-      sections.wrappers[wrapperName].parsed = {};
-
-    if (!sections.wrappers[wrapperName].vars)
-      sections.wrappers[wrapperName].vars = {};
-
-    for (let item of ['header', 'body', 'footer', 'scripts']) {
-      sections.wrappers[wrapperName].parsed[item] = result[item];
-      sections[item] = aux[item];
-    }
+  },
+  extend(wrapper, wrapperName, sections, state, config={}) {
+    if (!sections.parsedyr)
+      sections.parsedyr = { header: '', body: '', footer: '', scripts: '' };
 
     try {
-      sections.wrappers[wrapperName].yr = result.yr;
-    } catch(error) {/* pass */}
+      if (wrapperName.startsWith('!')) {
+        wrapper[0] = wrapper[0].replace(/!/, '');
+        wrapper[1] = wrapper[1].replace(/!/, '');
+        wrapperName = wrapperName.replace(/!/, '');
+        config.ignoreHtml = true;
+      }
 
-    sections.yr = _yr;
-  } catch(error) {
-    console.log(-323, error);
-    throw `error -323. Invalid extension: ${wrapper.join('/')}`;
-  }
-}
+      if (!sections.wrapperjs) sections.wrapperjs = '';
 
-function parseLine(line) {
-  const indentation = line.search(/\S/);
+      if (sections.extensions.includes('!! ' + wrapperName +  '\n')) {
+        if (config.redoWrapper) {
+          const newWrapper = this.parse(`>+\n\n_${wrapperName.toLowerCase()}`, {
+            ignoreHtml: config.ignoreHtml
+          });
 
-  return {
-    indentation, line: line.trim(),
-    level: (indentation / 2) + 1,
-    whiteSpace: ' '.repeat(indentation)
-  };
-}
-
-function getWhiteSpace(indentation) {
-  try {
-    return new Array((indentation * 2) - 1).join(' ');
-  } catch(error) { return ''; }
-}
-
-function getElementAttributes(line) {
-  const attributes = {};
-  if (!line.includes(' att={{')) return attributes;
-
-  const parsedString = line.split(' att={{')[1].split('}}')[0];
-  const parse = {};
-
-  let parseKey = '', parseValue = '', parseType = 0, changedParseType = false;
-  let isString = false, shouldSplit = false, string = '';
-  let lastChar, stringKey;
-  for (let value of parsedString) {
-    if (value === ':' && parseType === 0 && !isString) {
-      parseType = 1;
-      isString = false;
-      changedParseType = true;
-      continue;
-    } else if (value === ',' && parseType === 1 && !isString) {
-      parseType = 0;
-      isString = false;
-      changedParseType = true;
-      parse[parseKey.trim()] = parseValue.trim();
-      parseKey = '';
-      parseValue = '';
-      continue;
-    }
-
-    changedParseType = false;
-
-    if (lastChar !== '\\' && value === '\\' && isString) {
-      lastChar = value;
-      continue;
-    }
-
-    if ((value === '"' || value === "'")
-    && (stringKey === value || !stringKey)) {
-      if (lastChar === '\\' && isString) {
-        if (parseType === 0) {
-          parseKey += value;
-        } else if (parseType === 1) {
-          parseValue += value;
+          sections.wrappers[wrapperName] = newWrapper.wrappers[wrapperName];
+          sections.wrappers[wrapperName].redone = true;
+          sections.wrapperjs += newWrapper.wrapperjs;
         }
 
-        lastChar = value;
-        continue;
+        return;
       }
 
-      if (value === stringKey) {
-        isString = false;
-        stringKey = false;
-        continue;
-      } else if (!stringKey) {
-        isString = true;
-        stringKey = value;
-        continue;
+      const _yr = sections.yr;
+      sections.yr = {};
+
+      const aux = {};
+      for (let item of ['header', 'body', 'footer', 'scripts']) {
+        aux[item] = sections[item];
+        sections[item] = '';
       }
+
+      const result = this.parse(this.lib(wrapper[0], wrapper[1]).yr, {
+        sections, wrapper: `${wrapper.join('/')}`, ...config
+      });
+
+      sections.extensions += '!! ' + wrapperName + '\n';
+
+        if (!sections.wrappers[wrapperName])
+          sections.wrappers[wrapperName] = {};
+
+        if (!sections.wrappers[wrapperName].parsed)
+          sections.wrappers[wrapperName].parsed = {};
+
+        if (!sections.wrappers[wrapperName].vars)
+          sections.wrappers[wrapperName].vars = {};
+
+      for (let item of ['header', 'body', 'footer', 'scripts']) {
+        sections.wrappers[wrapperName].parsed[item] = result[item];
+        sections[item] = aux[item];
+      }
+
+      try {
+        sections.wrappers[wrapperName].yr = result.yr;
+      } catch(error) {/* pass */}
+
+      sections.yr = _yr;
+    } catch(error) {
+      console.log(-323, error);
+      throw `error -323. Invalid extension: ${wrapper.join('/')}`;
     }
-
-    if (parseType === 0) {
-      parseKey += value;
-    } else if (parseType === 1) {
-      parseValue += value;
-    }
-
-    lastChar = value;
-  }
-
-  parse[parseKey.trim()] = parseValue.trim();
-  parseKey = '', parseValue = '';
-  return { ...attributes, ...parse };
-}
-
-function addIdToElement(line, config, elementId=false) {
-  if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
-    if (!elementId) elementId = '__' + generateToken(8);
-    if (!line.trim().startsWith('_')) elementId = '{{' + elementId;
-
-    let openCase, newLine = '', addedClass;
-    for (let item of line.split(' ')) {
-      if (item.endsWith('{{')) {
-        openCase = true;
-        newLine += item + ' ';
-        continue;
-      }
-
-      if (item.endsWith('}}') && openCase) {
-        openCase = false;
-        newLine += item + ' ';
-        continue;
-      }
-
-      if (!openCase && item.startsWith('.') && !addedClass) {
-        addedClass = true;
-        item = item.replace(/\./, `.${elementId}.`);
-      }
-
-      newLine += item + ' ';
-    }
-
-    newLine = newLine.trimEnd();
-    if (!addedClass) newLine += ` .${elementId}`;
-    line = newLine;
-  }
-
-  return line;
-}
-
-const namespaces = {
-  '@&': { name: 'jsapp', parser: 'array', default: [], merge: true },
-  '++': { name: 'wrappers', parser: 'auxstring', default: {}, merge: true },
-  '>+': { name: 'wrapperbody', parser: 'html', default: '', merge: true },
-  '><': { name: 'body', parser: 'html', default: '', merge: true },
-  '@>': { name: 'jsheader', parser: 'string', default: '', merge: true },
-  '@@': { name: 'js', parser: 'string', default: '', merge: true },
-  '@<': { name: 'jsfooter', parser: 'string', default: '', merge: true },
-  '>@': { name: 'wrapperjs', parser: 'string', default: '', merge: true },
-  '<@': { name: 'wrapperjscustom', parser: 'string', default: '', merge: true },
-  '##': { name: 'css', parser: 'string', default: '', merge: true },
-  '""': { name: 'documentation', parser: 'string', default: '' },
-  '--': { name: 'modules', parser: 'object', default: [], merge: true },
-  '==': { name: 'pixel', parser: 'string', default: '', merge: true },
-  '>>': { name: 'header', parser: 'html', default: '', merge: true },
-  '<<': { name: 'footer', parser: 'html', default: '', merge: true },
-  '<>': { name: 'scripts', parser: 'html', default: '', merge: true },
-  '#>': { name: 'cssheader', parser: 'string', default: '', merge: true },
-  '##': { name: 'css', parser: 'string', default: '', merge: true },
-  '#<': { name: 'cssfooter', parser: 'string', default: '', merge: true },
-  '>#': { name: 'wrappercss', parser: 'string', default: '', merge: true },
-  '<#': { name: 'wrappercsscustom', parser: 'string', default: '', merge: true },
-  '|@': { name: 'jstests', parser: 'string', default: '', merge: true },
-  '||': { name: 'assert', parser: 'string', default: '', merge: true },
-  '&>': { name: 'appheader', parser: 'array', default: [], merge: true },
-  '&&': { name: 'app', parser: 'array', default: [], merge: true },
-  '&<': { name: 'appfooter', parser: 'array', default: [], merge: true },
-  '|&': { name: 'apptests', parser: 'array', default: [], merge: true },
-  '%%': { name: 'macros', parser: 'auxstring', default: {}, merge: true },
-  '**': { name: 'devops', parser: 'auxstring', default: [], merge: true }
-};
-
-const _parsers = {
-  array(line, sections, section, state, lineNumber, config={}) {
-    if (state.sectionChanged) sections[section].push('')
-    sections[section][sections[section].length - 1] += line + '\n';
   },
-  auxstring(line, sections, section, state, lineNumber, config={}) {
-    if (!sections[section + 'Aux']) sections[section + 'Aux'] = '';
-    sections[section + 'Aux'] += line + '\n';
-  },
-  nosection(line, sections, section, state, lineNumber, config={}) {
-    if (line.startsWith('--')) sections.modules =
-      [...sections.modules, ...line.slice(2).trim().split(',')];
-  },
-  string(line, sections, section, state, lineNumber, config={}) {
-    sections[section] += line + '\n';
-  },
-  html(line, sections, section, state, lineNumber, config={}) {
-    if (config.ignoreHtml) return;
-
-    if (!sections.yr[section]) sections.yr[section] = '';
-    const parsedLine = parseLine(line);
-
-    if (parsedLine.line.startsWith('//')) {
-      sections.yr[section] += line + '\n';
-      return;
-    }
-
-    if (parsedLine.line.endsWith('\\\\')) {
-      if (state.lineBreak) {
-        state.lineBreak.line = state.lineBreak.line + parsedLine.line.slice(0, -2);
-      } else {
-        state.lineBreak =
-          { ...parsedLine, line: parsedLine.line.slice(0, -2) };
-      }
-
-      return;
-    }
-
-    if (state.lineBreak) {
-      parsedLine.line = state.lineBreak.line + parsedLine.line;
-      line = state.lineBreak.line + line;
-      state.lineBreak = false;
-    }
-
-    if (!state.level) state.level = 0;
-
-    let yrParsedLine = (parsedLine.line.split(' ')[0].includes('/')
-    && !parsedLine.line.split(' ')[0].includes('_!') && parsedLine.line[0] === '_')
-      ? parsedLine.line.replace(/_/, '_!') : parsedLine.line;
-
-    let elementId = '__' + generateToken(8);
-
-    if (parsedLine.line.includes('.__')) {
-      elementId = '__' + parsedLine.line
-        .split('.__')[1].split(' ')[0].split('.')[0];
-    } else if (!parsedLine.line.trim().startsWith('_')
-    && parsedLine.line.includes('.{{__')) {
-      const split = parsedLine.line.split('.{{__');
-      elementId = '__' + split[1];
-      parsedLine.line = split[0].trimEnd();
-    }
-
-    yrParsedLine = addIdToElement(yrParsedLine, config, elementId);
-
-    let yrIndentation = 0, ignoreYr, wildCard = '', replaceYr;
-    if (state.wrapper.length > 0) {
-      let wrapper = state.wrapper[state.wrapper.length - 1];
-
-      if (parsedLine.indentation >= wrapper.reference) {
-        yrIndentation = wrapper.new - wrapper.reference + 2;
-        replaceYr = sections.yr[section].includes('#@#\n');
-      } else {
-        wrapper = state.wrapper[state.wrapper.length - 1];
-        sections.yr[section] = sections.yr[section].replace(/#@#\n/, '');
-        if (wrapper.wildCard) sections[section] += wrapper.wildCard + '\n';
-        state.wrapper.pop();
-      }
-    }
-
-    if (yrIndentation < 0) yrIndentation = 0;
-
-    const parsedYr = parsedLine.whiteSpace
-      + ' '.repeat(yrIndentation) + yrParsedLine.trim() + '\n';
-
-    if (replaceYr) {
-      sections.yr[section] = sections.yr[section]
-        .replace(/#@#\n/, parsedYr + '#@#\n');
-    } else {
-      sections.yr[section] += parsedYr;
-    }
-
-    if (parsedLine.indentation !== -1) {
-      if (parsedLine.indentation % 2 !== 0)
-        throw `-1: indentation error at line ${lineNumber}` + '';
-          ` (${config.name}.yr, ${config.project}):\n\n"""\n${line}\n"""`;
-
-      if (parsedLine.level > state.level + 1)
-        throw `-2: indentation error at line ${lineNumber}` + '' +
-          ` (${config.name}.yr, ${config.project}):\n\n"""\n${line}\n"""`;
-
-      if (parsedLine.level < state.level) {
-        for (let j = state.layers.length; j > parsedLine.level - 1; j--) {
-          if (!state.layers[j - 1]) continue;
-
-          sections[state.layers[j - 1].section] +=
-            state.layers[j - 1].whiteSpace + `</${state.layers[j - 1].tag}>\n`;
-
-          state.layers.pop();
-        }
-      } else if (parsedLine.level === state.level
-      && state.element && state.layers.length > 0) {
-        sections[state.layers[state.layers.length - 1].section] +=
-          `</${state.layers[state.layers.length - 1].tag}>\n`;
-
-        state.layers.pop();
-      }
-    }
-
-    if (state.layers.length > 0 && (state.sectionChanged
-    || state.layers[state.layers.length - 1].indentation === parsedLine.indentation)) {
-      for (let j = state.layers.length - 1; j >= 0; j--) {
-        if (j === -1) continue;
-
-        sections[state.layers[j].section] +=
-          state.layers[j].whiteSpace + `</${state.layers[j].tag}>\n`;
-
-        state.layers.pop();
-      }
-    }
-
-    if (parsedLine.line[0] === '_') {
-      const elementAttributes = getElementAttributes(parsedLine.line);
-      const attSplit = parsedLine.line.split(' att={{');
-
-      if (attSplit.length > 1)
-        parsedLine.line = attSplit[0] + attSplit[1].split('}}')[1];
-
-      const lineSplit = parsedLine.line.split(' ');
-
-      let tag = lineSplit.shift().substring(1);
-      if (tag === '') tag = 'div';
-
-      if (tag[0] === '_') {
-        tag = tag.replace(/__/, '');
-        if (!tag) tag = 'div';
-        wildCard += '<!--#@#-->';
-      }
-
-      let attributes = '', id = '', classes = '';
-      for (let item of lineSplit) {
-        if (item.startsWith('#')) {
-          id = ` id="${item.substring(1)}"`;
-        } else if (item.startsWith('.')) {
-          let ignoreCrypto;
-          if (item.includes('.__')) {
-            for (let value of item.split('.')) {
-              if (value.startsWith('__')) {
-                ignoreCrypto = true;
-                break;
-              }
-            }
-          }
-
-          classes = ` class="${item.substring(1).split('.').join(' ')}"`;
-        } else {
-          attributes += ` ${item}`;
-        }
-      }
-
-      if (tag.includes('/')) {
-        const wrapper = tag.replace(/!/, '').split('/');
-        wrapper[0] = capitalize(wrapper[0]);
-        wrapper[1] = capitalize(wrapper[1]);
-        const wrapperName = wrapper.join('/');
-
-        extend(wrapper, wrapperName, sections, state, {
-          redoWrapper: true, libFn: config.libFn
-        });
-
-        let newWrapper, wrapperIndentation;
-        if (!tag.includes('!')) {
-          newWrapper = {
-            section, reference: parsedLine.indentation + 2,
-            new: parsedLine.indentation, content: '', wildCard: '',
-            layers: JSON.parse(JSON.stringify(state.layers))
-          };
-
-          state.wrapper.push(newWrapper);
-          wrapperIndentation = parsedLine.indentation;
-        }
-
-        if (sections.wrappers[wrapperName]) {
-          elementAttributes.id = elementId;
-          elementAttributes.category = wrapper[0];
-          elementAttributes.option = wrapper[1];
-
-          let attributes = [];
-          try {
-            attributes = sections.wrappers[wrapperName].vars.attributes;
-          } catch(error) {
-            console.log(wrapperName);
-            console.log(sections.wrappers[wrapperName]);
-            console.log(parsedLine);
-            console.log(error);
-            throw error;
-          }
-
-          if (!attributes) attributes = sections.vars.attributes;
-          elementAttributes.attributes = attributes;
-
-          let redone;
-          try {
-            redone = !sections.wrapper[wrapperName].redone;
-          } catch(error) {/* pass */}
-
-          if (sections.jsheader
-          .includes(`function __${wrapperName.replace(/\//, '_')}(`)
-          && !sections.wrapperjs.includes(`"id":"${elementId}"`)) {
-            const wrapperjs =
-              `__${wrapperName.replace(/\//, '_')}(${JSON.stringify(elementAttributes)});\n`;
-
-            sections.wrapperjs += wrapperjs;
-          }
-
-          if (!tag.includes('!')) {
-            if (sections.wrappers[wrapperName].yrwrapperbody) {
-              for (let value of sections.wrappers[wrapperName]
-              .yrwrapperbody.split('\n')) {
-                if (value.trim() === '') continue;
-                value = addIdToElement(value, config);
-
-                if (yrIndentation % 2 !== 0) yrIndentation -= 1;
-                if (newWrapper.reference % 2 !== 0) newWrapper.reference -= 1;
-                if (newWrapper.new % 2 !== 0) newWrapper.new -= 1;
-
-                value = ' '.repeat(newWrapper.reference + yrIndentation)
-                  + value + '\n';
-
-                if (value.includes('___')) {
-                  value = value.replace(/___/, '_');
-                  value += '#@#\n';
-                  newWrapper.new = value.search(/\S/);
-                }
-
-                sections.yr[section] += value;
-              }
-            }
-
-            if (sections.wrappers[wrapperName].wrapperbody) {
-              const split = sections.wrappers[wrapperName].wrapperbody.split('<!--#@#-->\n');
-              if (split[1]) newWrapper.wildCard = split[1];
-
-              for (let _line of split[0].split('\n'))
-                wildCard += ' '.repeat(yrIndentation) + _line + '\n';
-            }
-          }
-        }
-
-        tag = 'div';
-        if (!classes) {
-          classes = ` class="${elementId}"`;
-        } else if (!classes.includes(elementId)) {
-          classes = classes.split('class="').join(`class="${elementId} `);
-        }
-      }
-
-      if (config.preview) {
-        if (!classes) {
-          classes = ` class="${elementId}"`;
-        } else if (!classes.includes(elementId)) {
-          classes = classes.split('class="').join(`class="${elementId} `);
-        }
-      }
-
-      attributes = `${id}${classes}${attributes}`.trim();
-
-      sections[section] += ' '.repeat(yrIndentation) + parsedLine.whiteSpace +
-        `<${tag} ${attributes}>\n${wildCard}\n`;
-
-      state.layers.push({ tag, section, ...parsedLine });
-      state.element = true;
-    } else {
-      if (section) {
-        if (section === 'header') {
-          sections[section] += parsedLine.whiteSpace + parsedLine.line + '\n';
-        } else {
-          let attributes = '';
-
-          if (config.preview) elementId += ' _yrtext';
-
-          sections[section] +=
-            `${parsedLine.whiteSpace}<span class="${elementId}"${attributes}>${parsedLine.line}</span>\n`;
-        }
-      }
-
-      state.element = false;
-    }
-
-    state.level = parsedLine.level;
-  }
-}
-
-const parsers = {}, defaults = {}, mergers = {}, names = {};
-for (let item of Object.keys(namespaces)) {
-  names[namespaces[item].name] = item;
-
-  if (namespaces[item].parser)
-    parsers[namespaces[item].name] = namespaces[item].parser;
-
-  if (namespaces[item].default || namespaces[item].default === '') {
-    defaults[namespaces[item].name] = namespaces[item].default;
-
-    if (namespaces[item].merge)
-      mergers[namespaces[item].name] = namespaces[item].default;
-  }
-}
-
-const parsersFn = {
-  namespaces, tokens: Object.keys(namespaces), parsers, mergers, names,
-  defaults() { return JSON.parse(JSON.stringify(defaults)); },
-  parse(parser, line, sections, section, state, lineNumber, config) {
-    if (line === '') return;
-    const parserFn = _parsers[parser];
-    if (!parserFn) return;
-    parserFn(line, sections, section, state, lineNumber, config);
-  }
-};
-
-function parse(code, config={}) {
-  const sections = (config.sections) ? config.sections : parsersFn.defaults();
-
-  const state = {
-    section: undefined, layers: [],
-    lastSection: undefined, sectionChanged: false,
-    wrapper: [], code
-  };
+  parse(code, config={}) {
+    const sections = (config.sections) ? config.sections : parsers.defaults();
+
+    const state = {
+      section: undefined, layers: [],
+      lastSection: undefined, sectionChanged: false,
+      wrapper: [], code
+    };
 
     if (config.debug) {
       console.log('+++++');
@@ -745,7 +684,7 @@ function parse(code, config={}) {
     }
 
     try {
-      state.id = generateToken(8);
+      state.id = crypto.generateToken(8);
     } catch(error) {/* pass */}
 
     let section = 'nosection', lineNumber = 1;
@@ -771,11 +710,11 @@ function parse(code, config={}) {
     for (let line of code.split('\n')) {
       if (line.trim() === '') continue;
 
-      if (parsersFn.tokens.includes(line)) {
+      if (parsers.tokens.includes(line)) {
         if (section === 'macros')
-          aux(sections, { macrosAux: sections.macrosAux });
+          this.aux(sections, { macrosAux: sections.macrosAux });
 
-        section = parsersFn.namespaces[line].name;
+        section = parsers.namespaces[line].name;
         state.sectionChanged = true;
 
         if (state.wrapper.length > 0) {
@@ -813,9 +752,7 @@ function parse(code, config={}) {
           const wrapper = wrapperName.split('/');
           if (wrapper.length === 1) wrapper.unshift('__');
 
-          extend(wrapper, wrapperName, sections, state, {
-            libFn: config.libFn
-          });
+          this.extend(wrapper, wrapperName, sections, state);
         //} else if (line.startsWith('\\\\')) {
         //  const wrapperName = line.replace(/\\\\/g, '').trim() + '\n';
 
@@ -854,10 +791,10 @@ function parse(code, config={}) {
         ? 'auxstring' : 'nosection';
 
       try {
-        parser = parsersFn.namespaces[parsersFn.names[section]].parser;
+        parser = parsers.namespaces[parsers.names[section]].parser;
       } catch(error) {/* pass */}
 
-      parsersFn.parse(parser, line, sections, section, state, lineNumber, config);
+      parsers.parse(parser, line, sections, section, state, lineNumber, config);
       state.sectionChanged = false;
       lineNumber++;
     }
@@ -884,7 +821,7 @@ function parse(code, config={}) {
         sections[item] = '';
       }
 
-      const extension = parse(`${
+      const extension = this.parse(`${
         (sections.varsAux) ? `${sections.varsAux}\n\n` : ''
       }>+\n\n${sections.wrappersAux}`, { sections });
 
@@ -927,13 +864,14 @@ function parse(code, config={}) {
 
 
       for (let j = wrapper.layers.length - 1; j >= 0; j--) {
-        if (j === -1) continue;
+        const layer = wrapper.layers[j];
+        if (!layer) continue;
 
-        sections[wrapper.layers[j].section] +=
-          getWhiteSpace(wrapper.layers[j].indentation) + `</${wrapper.layers[j].tag}>\n`;
+        sections[layer.section] +=
+          common.getWhiteSpace(layer.indentation) + `</${layer.tag}>\n`;
 
         wrapper.layers.pop();
-        state.layers = state.layers.filter(e => e !== sections[wrapper.layers[j]]);
+        state.layers = state.layers.filter(e => e !== layer);
       }
 
       state.wrapper.pop();
@@ -943,19 +881,19 @@ function parse(code, config={}) {
       if (j === -1) continue;
 
       sections[state.layers[j].section] +=
-        getWhiteSpace(state.layers[j].indentation) + `</${state.layers[j].tag}>\n`;
+        common.getWhiteSpace(state.layers[j].indentation) + `</${state.layers[j].tag}>\n`;
 
       state.layers.pop();
     }
 
-    aux(sections, {
+    this.aux(sections, {
       macrosAux: sections.macrosAux,
       devopsAux: sections.devopsAux
     });
 
-    for (let item in parsersFn.mergers) {
-      if (JSON.stringify(parsersFn.mergers[item]) === '""')
-        sections[item] = macros(sections, item);
+    for (let item in parsers.mergers) {
+      if (JSON.stringify(parsers.mergers[item]) === '""')
+        sections[item] = this.macros(sections, item);
     }
 
     sections.modules = sections.modules
@@ -1050,12 +988,12 @@ function parse(code, config={}) {
     };
 
     if (sections.parsedcss !== '')
-      sections.parsedcss = macros(sections, 'parsedcss');
+      sections.parsedcss = this.macros(sections, 'parsedcss');
 
     if (config.preview) sections.parsedjs += '\n' + sections.jstests;
 
     if (sections.parsedjs !== '')
-      sections.parsedjs = macros(sections, 'parsedjs');
+      sections.parsedjs = this.macros(sections, 'parsedjs');
 
     let newWrapperJs = '';//const __runenv = async () => {\n';
     //sections.parsedjs += 'const __runenv = async () => {\n';
@@ -1276,7 +1214,7 @@ function parse(code, config={}) {
     }
 
     if (sections.parsedapp !== '')
-      sections.parsedapp = macros(sections, 'parsedapp');
+      sections.parsedapp = this.macros(sections, 'parsedapp');
 
     if (config.window) {
       let newjs = '';
@@ -1306,15 +1244,15 @@ function parse(code, config={}) {
     if (!config.lang) config.lang = 'en-US';
 
     if (config.name) {
-      const assetHash = generateToken(6).toLowerCase();
+      const assetHash = crypto.generateToken(6).toLowerCase();
       for (let value of ['css', 'js'])
         config[`${value}name`] = `${config.name}.${assetHash}`;
     }
 
-  if (sections.apptests.length > 0 && !sections.parsedbody.includes('class="__')) {
-    sections.parsedbody += '\n<div class="__cclass"></div>';
+    if (sections.apptests.length > 0 && !sections.parsedbody.includes('class="__')) {
+      sections.parsedbody += '\n<div class="__cclass"></div>';
 
-    sections.parsedscripts = `<script>
+      sections.parsedscripts = `<script>
 try {
 function require(name) {
   //return window[name];
@@ -1329,7 +1267,7 @@ ${sections.apptests.join('')}
 </script>`;
     }
 
-  sections.parsedhtml = `<!DOCTYPE html>
+    sections.parsedhtml = `<!DOCTYPE html>
 <html lang="${config.lang}">
 ${sections.pixel}
 <head>
@@ -1351,18 +1289,21 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </html>`;
 
-  if (config.name) sections.ui = [
-    { name: `${config.name}.html`, content: sections.parsedhtml },
-    { name: `${config.cssname}.css`, content: sections.parsedcss },
-    { name: `${config.jsname}.js`, content: sections.parsedjs },
-    { name: `${capitalize(config.name)}_.yr`, content: code }
-  ];
+    if (config.name) sections.ui = [
+      { name: `${config.name}.html`, content: sections.parsedhtml },
+      { name: `${config.cssname}.css`, content: sections.parsedcss },
+      { name: `${config.jsname}.js`, content: sections.parsedjs },
+      { name: `${utils.capitalize(config.name)}_.yr`, content: code }
+    ];
 
-  return sections;
-}
+    return sections;
+  }
+};
+
+const parse = core.parse.bind(core);
 
 if (typeof window !== 'undefined' && !window.yr)
-  window.yr = parse;
+  window.yr = core;
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = parse;
+  module.exports = core;

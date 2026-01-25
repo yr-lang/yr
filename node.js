@@ -3,7 +3,7 @@ const vm = require('vm');
 const spawn = require('child_process').spawn;
 const common = require('./src/common');
 const parsers = require('./etc/parsers');
-const parse = require('./yr');
+const core = require('./yr');
 const yrlib = __dirname + '/lib';
 
 const env = {
@@ -870,11 +870,10 @@ cp -r "$_PROJECT_PATH/static/." "$_PROJECT_PATH/dist/"` : ''}\n`;
     }
   },
   parse(code, config={}) {
-    config.libFn = (wrapper) => {
-      const result = this.lib(wrapper[0], wrapper[1]);
-      return result.yr;
-    };
-    //return parse(code, config);
+    core.set((category=false, option=false, parseConfig=false) =>
+      this.lib(category, option, parseConfig))
+
+    return core.parse(code, config);
 
     const sections = (config.sections) ? config.sections : parsers.defaults();
 
@@ -1071,13 +1070,14 @@ cp -r "$_PROJECT_PATH/static/." "$_PROJECT_PATH/dist/"` : ''}\n`;
 
 
       for (let j = wrapper.layers.length - 1; j >= 0; j--) {
-        if (j === -1) continue;
+        const layer = wrapper.layers[j];
+        if (!layer) continue;
 
-        sections[wrapper.layers[j].section] +=
-          common.getWhiteSpace(wrapper.layers[j].indentation) + `</${wrapper.layers[j].tag}>\n`;
+        sections[layer.section] +=
+          common.getWhiteSpace(layer.indentation) + `</${layer.tag}>\n`;
 
         wrapper.layers.pop();
-        state.layers = state.layers.filter(e => e !== sections[wrapper.layers[j]]);
+        state.layers = state.layers.filter(e => e !== layer);
       }
 
       state.wrapper.pop();
