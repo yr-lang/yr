@@ -215,7 +215,6 @@ function extend(wrapper, wrapperName, sections, state, config={}) {
     }
 
     const code = (config.libFn) ? config.libFn(wrapper) : '++\n_';
-    console.log(1, wrapper, config.libFn);
 
     const result = parse(code, {
       sections, wrapper: `${wrapper.join('/')}`, ...config
@@ -407,7 +406,7 @@ const _parsers = {
     if (state.sectionChanged) sections[section].push('')
     sections[section][sections[section].length - 1] += line + '\n';
   },
-  auxString(line, sections, section, state, lineNumber, config={}) {
+  auxstring(line, sections, section, state, lineNumber, config={}) {
     if (!sections[section + 'Aux']) sections[section + 'Aux'] = '';
     sections[section + 'Aux'] += line + '\n';
   },
@@ -557,7 +556,7 @@ const _parsers = {
         } else if (item.startsWith('.')) {
           let ignoreCrypto;
           if (item.includes('.__')) {
-            for (let value of item.split('\.')) {
+            for (let value of item.split('.')) {
               if (value.startsWith('__')) {
                 ignoreCrypto = true;
                 break;
@@ -577,11 +576,9 @@ const _parsers = {
         wrapper[1] = capitalize(wrapper[1]);
         const wrapperName = wrapper.join('/');
 
-        console.log(-1, wrapper, sections);
         extend(wrapper, wrapperName, sections, state, {
           redoWrapper: true, libFn: config.libFn
         });
-        console.log(-2, sections, config.libFn, sections.wrappers[wrapperName]);
 
         let newWrapper, wrapperIndentation;
         if (!tag.includes('!')) {
@@ -733,7 +730,6 @@ const parsersFn = {
 };
 
 function parse(code, config={}) {
-  console.log(0, config);
   const sections = (config.sections) ? config.sections : parsersFn.defaults();
 
   const state = {
