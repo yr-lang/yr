@@ -3,6 +3,7 @@ const vm = require('vm');
 const spawn = require('child_process').spawn;
 const common = require('./src/common');
 const parsers = require('./etc/parsers');
+const parse = require('./yr');
 const yrlib = __dirname + '/lib';
 
 const env = {
@@ -869,6 +870,12 @@ cp -r "$_PROJECT_PATH/static/." "$_PROJECT_PATH/dist/"` : ''}\n`;
     }
   },
   parse(code, config={}) {
+    config.libFn = (wrapper) => {
+      const result = this.lib(wrapper[0], wrapper[1]);
+      return result.yr;
+    };
+    //return parse(code, config);
+
     const sections = (config.sections) ? config.sections : parsers.defaults();
 
     const state = {
@@ -1601,11 +1608,12 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log(`####### Testing [${getWrapperName(wrappers[item])}]\n`);
       const wrapper = this.parse(wrappers[item].yr, { debug: true, preview: true });
       //console.log('===================== Wrapper');
+      console.log(wrapper);
       //console.log(wrappers[item].yr);
       //console.log('===================== Parsed');
-      console.log(wrapper.parsedyr.body);
+      //console.log(wrapper.parsedyr.body);
       //console.log('=================== BODY assert');
-      console.log(wrapper.body);
+      //console.log(wrapper.body);
       //console.log('=================== YR assert');
       //console.log(wrappers[item].yr);
       //console.log('===================');
