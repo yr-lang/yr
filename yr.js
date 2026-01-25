@@ -1297,13 +1297,14 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     return sections;
-  }
+  },
+  parsers
 };
-
-const parse = core.parse.bind(core);
-
-if (typeof window !== 'undefined' && !window.yr)
-  window.yr = core;
 
 if (typeof module !== 'undefined' && module.exports)
   module.exports = core;
+
+if (typeof window !== 'undefined' && !window.yr) {
+  const parse = core.parse.bind(core);
+  window.yr = parse;
+}
