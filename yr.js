@@ -278,8 +278,7 @@ const parserFns = {
       }
     }
     if (state.layers.length > 0 && (state.sectionChanged
-    || state.layers[state.layers.length - 1].indentation === parsedLine.indentation))
-{  
+    || state.layers[state.layers.length - 1].indentation === parsedLine.indentation)) {
       for (let j = state.layers.length - 1; j >= 0; j--) {
         if (j === -1) continue;
         sections[state.layers[j].section] +=

@@ -424,7 +424,7 @@ const window = {
   __api: '',
 };
 const fs = require('fs');
-let projectPath = '${parsePaths(projectPath)}';
+let _PROJECT_PATH = '${parsePaths(projectPath)}';
 const _globals = [];
 function parsePaths(newPaths) {
   let newStrPath = [];
@@ -442,8 +442,8 @@ function setGlobal(name, item) {
     _globals.push(name);
   }
 }
-projectPath = parsePaths(projectPath);
-const _config = require(\`\${projectPath}/yrconfig.json\`);
+_PROJECT_PATH = parsePaths(_PROJECT_PATH);
+const _config = require(\`\${_PROJECT_PATH}/yrconfig.json\`);
 const env = require(\`\${projectPath}/.env.json\`);
 for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
   if (typeof env[item] === 'object') {
@@ -453,7 +453,7 @@ for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
   }
 }\n` + result.app;
 
-    result.app = this.macros(result, 'app');
+    result.app = core.macros(result, 'app');
 
     result.modules = result.modules.join(' ');
     result.devops = this.devops({
