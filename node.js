@@ -444,7 +444,7 @@ function setGlobal(name, item) {
 }
 _PROJECT_PATH = parsePaths(_PROJECT_PATH);
 const _config = require(\`\${_PROJECT_PATH}/yrconfig.json\`);
-const env = require(\`\${projectPath}/.env.json\`);
+const env = require(\`\${_PROJECT_PATH}/.env.json\`);
 for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
   if (typeof env[item] === 'object') {
     env[item] = parsePaths(env[item].join(',')).split(',');

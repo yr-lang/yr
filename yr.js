@@ -180,7 +180,6 @@ function addIdToElement(line, config, elementId=false) {
   return line;
 }
 
-
 const parserFns = {
   array(line, sections, section, state, lineNumber, config={}) {
     if (state.sectionChanged) sections[section].push('')
@@ -323,7 +322,7 @@ const parserFns = {
         wrapper[0] = utils.capitalize(wrapper[0]);
         wrapper[1] = utils.capitalize(wrapper[1]);
         const wrapperName = wrapper.join('/');
-        yr.extend(wrapper, wrapperName, sections, state, { redoWrapper: true });
+        core.extend(wrapper, wrapperName, sections, state, { redoWrapper: true });
         let newWrapper, wrapperIndentation;
         if (!tag.includes('!')) {
           newWrapper = {
