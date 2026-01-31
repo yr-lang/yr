@@ -2,26 +2,41 @@ yr Source-Available License
 yr-lang™
 Copyright (c) 2025 Matheus Araújo
 
-1. Permission is granted to use this software, without modification,
-   as a dependency or tool to build, run, and commercialize your own
-   applications, services, or platforms.
+1. Usage
+Permission is granted to use this software, without modification,
+as a dependency or tool to build, run, and commercialize your own
+applications, services, or platforms.
 
-2. You may modify this software for internal or personal use.
-   Redistribution of modified versions is not permitted except
-   through contributions to the official yr-lang™ repositories.
+2. Modifications
+You may modify this software for internal or personal use.
+Redistribution of modified versions is not permitted except
+through contributions to the official yr-lang™ repositories.
 
-3. You may not redistribute, sublicense, sell, or offer this software
-   or a modified version of it as a standalone product, service,
-   or competing language, runtime, toolchain, or platform.
+3. Redistribution and Competition
+You may not redistribute, sublicense, sell, or offer this software
+or a modified version of it as a standalone product, service,
+or as a competing language, runtime, toolchain, or platform.
 
-4. Forking this software for the purpose of creating an alternative,
-   competing, or commercially distributed version is prohibited.
-   Contributions via pull requests to the official repositories
-   are allowed and encouraged.
+4. Forking
+Forking this software for public redistribution or commercial
+purposes is prohibited.
 
-5. This license applies only to the specific version obtained.
-   No rights to future versions are granted unless explicitly stated.
+Forks created for personal inspection, experimentation, or internal
+use are permitted, provided they are not redistributed.
 
-6. By submitting a contribution, you grant the copyright holder a
-   perpetual, worldwide, royalty-free right to use, modify,
-   relicense, and distribute your contribution.
+Contributions via pull requests to the official repositories
+are allowed and encouraged.
+
+5. Version Scope
+This license applies only to the specific version obtained.
+No rights to future versions are granted unless explicitly stated.
+
+6. Contributions
+By submitting a contribution, you grant the copyright holder a
+perpetual, worldwide, royalty-free right to use, modify,
+relicense, and distribute your contribution.
+
+7. Disclaimer
+This software is provided "as is", without warranty of any kind.
+The author is not responsible for any damages or issues resulting
+from its use.

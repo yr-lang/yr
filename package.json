@@ -1,4 +1,14 @@
 {
-  "name": "yr",
-  "main": "./node.js"
+  "name": "@yr-lang/yr",
+  "version": "0.1.0",
+  "description": "Yr is a modern structural language and parser",
+  "main": "./node.js",
+  "exports": {
+    ".": "./node.js"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yr-lang/yr"
+  }
 }

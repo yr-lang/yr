@@ -1,4 +1,7 @@
-## Bugs
+## Known Issues
+
+This file documents known bugs and limitations in yr.
+The project is under active development.
 
 ### Wrapper-only section closure can fail
 

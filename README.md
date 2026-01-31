@@ -1,4 +1,4 @@
-# `yr` - A Lightweight Multi-Stack Programming Language
+# `yr` - a lightweight multi-stack programming language
 
 `yr` is a **domain-specific language (DSL)** designed to streamline multi-stack development projects. Built for frontend, backend, and DevOps workflows, it merges stacks such as HTML, CSS, JS, Bash, and Python into a single cohesive language. It eliminates the need for heavy frameworks and excessive boilerplate by using indentation-based syntax, reusable macros, and modular wrapper files.
 
