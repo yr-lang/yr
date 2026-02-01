@@ -14,7 +14,7 @@ The goal of `yr` is to:
 
 # Documentation
 
-For more information on how to use the API or syntax description with examples, read the [docs](https://github.com/yr-lang/docs) files for concise explanation or [Yrci](https://github.com/yr-lang/yr/tree/main/lib/Yrci) for code snippets.
+For more information on how to use the `yr` API or syntax description with examples, read the [docs](https://github.com/yr-lang/docs) for concise explanation or [Yrci](https://github.com/yr-lang/yr/tree/main/lib/Yrci) for code snippets.
 
 # License
 
