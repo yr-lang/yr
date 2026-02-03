@@ -9,6 +9,6 @@
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yr-lang/yr"
+    "url": "git+https://github.com/yr-lang/yr.git"
   }
 }
