@@ -884,6 +884,7 @@ const core = {
       state.layers.pop();
     }
 
+    console.log(1)
     this.aux(sections, {
       macrosAux: sections.macrosAux,
       devopsAux: sections.devopsAux
@@ -1286,6 +1287,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </html>`;
+    console.log(200, sections.parsedhtml, sections);
 
     if (config.name) sections.ui = [
       { name: `${config.name}.html`, content: sections.parsedhtml },
