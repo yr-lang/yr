@@ -884,7 +884,6 @@ const core = {
       state.layers.pop();
     }
 
-    console.log(1)
     this.aux(sections, {
       macrosAux: sections.macrosAux,
       devopsAux: sections.devopsAux
@@ -1287,7 +1286,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </html>`;
-    console.log(200, sections.parsedhtml, sections);
 
     if (config.name) sections.ui = [
       { name: `${config.name}.html`, content: sections.parsedhtml },
@@ -1305,7 +1303,6 @@ if (typeof module !== 'undefined' && module.exports)
   module.exports = core;
 
 if (typeof window !== 'undefined' && !window.yr) {
-  window.yr = core;
-  //const parse = core.parse.bind(core);
-  //window.yr = parse;
+  const parse = core.parse.bind(core);
+  window.yr = parse;
 }
