@@ -1303,6 +1303,7 @@ if (typeof module !== 'undefined' && module.exports)
   module.exports = core;
 
 if (typeof window !== 'undefined' && !window.yr) {
-  const parse = core.parse.bind(core);
-  window.yr = parse;
+  window.yr = core;
+  //const parse = core.parse.bind(core);
+  //window.yr = parse;
 }
