@@ -436,8 +436,8 @@ function parsePaths(newPaths) {
 
   return newStrPath.join(',');
 }
-function setGlobal(name, item) {
-  if (!_globals.includes(name)) {
+function setGlobal(name, item, subscribe=false) {
+  if (!_globals.includes(name) || subscribe) {
     global[name] = item;
     _globals.push(name);
   }
