@@ -629,14 +629,22 @@ cp -r "$_PROJECT_PATH/static/." "$_PROJECT_PATH/dist/"` : ''}\n`;
 
     for (let item of ['build', 'serve', 'deploy']) {
       try {
-        let index = (item === 'build') ? 0 : 1;
+        let index = (item !== 'serve') ? 0 : 1;
 
         let wrapper = fs.readFileSync(`${yrlib}/\%${item}.yr`, 'utf8')
         const shebang = wrapper.trim().split('\n')[0];
         if (shebang.startsWith('#!')) wrapper = wrapper.trim().replace(shebang + '\n', '');
 
-        if (!parsed[item]) parsed[item] = newDevops(projectPath, shebang, (item === 'build'))
-          + this.parse(wrapper, { onlySections: true }).devops[index][item];
+        if (!parsed[item]) {
+          let value;
+          for (let key of this.parse(wrapper, { onlySections: true }).devops) {
+            for (let obj in key) {
+              if (!key[obj]) continue;
+              if (!parsed[obj]) parsed[obj] = newDevops(projectPath, shebang, (item === 'build'));
+              if (!parsed[obj].includes(key[obj])) parsed[obj] += '\n' + key[obj];
+            }
+          }
+        }
       } catch(error) {/* pass */}
     }
 
