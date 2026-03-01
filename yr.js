@@ -17,10 +17,11 @@ const utils = {
 };
 
 const common = {
+  // Bug fix: was using new Array((i*2)-1).join which was designed for 'level' units,
+  // but is called with raw indentation (char count). Use simple repeat instead.
   getWhiteSpace(indentation) {
-    try {
-      return new Array((indentation * 2) - 1).join(' ');
-    } catch(error) { return ''; }
+    if (!indentation || indentation < 0) return '';
+    return ' '.repeat(indentation);
   }
 };
 
@@ -140,7 +141,9 @@ function getElementAttributes(line) {
     lastChar = value;
   }
 
-  parse[parseKey.trim()] = parseValue.trim();
+  // Bug fix: only add the last key-value if parseKey is non-empty
+  // (avoids adding a spurious empty key when attrs end with a trailing comma)
+  if (parseKey.trim()) parse[parseKey.trim()] = parseValue.trim();
   parseKey = '', parseValue = '';
   return { ...attributes, ...parse };
 }
@@ -234,16 +237,32 @@ const parserFns = {
     }
     yrParsedLine = addIdToElement(yrParsedLine, config, elementId);
     let yrIndentation = 0, ignoreYr, wildCard = '', replaceYr;
-    if (state.wrapper.length > 0) {
+    // Bug fix: use while loop to close ALL wrappers that need closing (not just one)
+    // A single element may need to close multiple nested wrappers at once
+    while (state.wrapper.length > 0) {
       let wrapper = state.wrapper[state.wrapper.length - 1];
       if (parsedLine.indentation >= wrapper.reference) {
         yrIndentation = wrapper.new - wrapper.reference + 2;
         replaceYr = sections.yr[section].includes('#@#\n');
+        break; // Still inside this wrapper, stop closing
       } else {
-        wrapper = state.wrapper[state.wrapper.length - 1];
         sections.yr[section] = sections.yr[section].replace(/#@#\n/, '');
+        // Close any layers that were opened inside this wrapper before popping it
+        for (let j = state.layers.length - 1; j >= 0; j--) {
+          const layer = state.layers[j];
+          if (!layer) continue;
+          // Only close layers that belong inside this wrapper (indentation >= wrapper.reference)
+          if (layer.indentation >= wrapper.reference) {
+            sections[layer.section] +=
+              layer.whiteSpace + `</${layer.tag}>\n`;
+            state.layers.pop();
+          } else {
+            break;
+          }
+        }
         if (wrapper.wildCard) sections[section] += wrapper.wildCard + '\n';
         state.wrapper.pop();
+        // After popping, loop again to check if we need to close more wrappers
       }
     }
     if (yrIndentation < 0) yrIndentation = 0;
@@ -257,7 +276,7 @@ const parserFns = {
     }
     if (parsedLine.indentation !== -1) {
       if (parsedLine.indentation % 2 !== 0)
-        throw `-1: indentation error at line ${lineNumber}` + '';
+        throw `-1: indentation error at line ${lineNumber}` + '' +
           ` (${config.name}.yr, ${config.project}):\n\n"""\n${line}\n"""`;
       if (parsedLine.level > state.level + 1)
         throw `-2: indentation error at line ${lineNumber}` + '' +
@@ -333,33 +352,28 @@ const parserFns = {
           state.wrapper.push(newWrapper);
           wrapperIndentation = parsedLine.indentation;
         }
+        // Always set up element attributes for wrapperjs call,
+        // even if wrapper has no ++ section (no wrapperbody)
+        elementAttributes.id = elementId;
+        elementAttributes.category = wrapper[0];
+        elementAttributes.option = wrapper[1];
+        let attributes = [];
+        try {
+          attributes = sections.wrappers[wrapperName]
+            ? sections.wrappers[wrapperName].vars.attributes
+            : sections.vars.attributes;
+        } catch(error) {/* pass */}
+        if (!attributes) attributes = sections.vars.attributes;
+        elementAttributes.attributes = attributes;
+        // Call the JS wrapper function if it exists, regardless of whether ++ is present
+        if (sections.jsheader
+        .includes(`function __${wrapperName.replace(/\//, '_')}(`)
+        && !sections.wrapperjs.includes(`"id":"${elementId}"`)) {
+          const wrapperjs =
+            `__${wrapperName.replace(/\//, '_')}(${JSON.stringify(elementAttributes)});\n`;
+          sections.wrapperjs += wrapperjs;
+        }
         if (sections.wrappers[wrapperName]) {
-          elementAttributes.id = elementId;
-          elementAttributes.category = wrapper[0];
-          elementAttributes.option = wrapper[1];
-          let attributes = [];
-          try {
-            attributes = sections.wrappers[wrapperName].vars.attributes;
-          } catch(error) {
-            console.log(wrapperName);
-            console.log(sections.wrappers[wrapperName]);
-            console.log(parsedLine);
-            console.log(error);
-            throw error;
-          }
-          if (!attributes) attributes = sections.vars.attributes;
-          elementAttributes.attributes = attributes;
-          let redone;
-          try {
-            redone = !sections.wrappers[wrapperName].redone;
-          } catch(error) {/* pass */}
-          if (sections.jsheader
-          .includes(`function __${wrapperName.replace(/\//, '_')}(`)
-          && !sections.wrapperjs.includes(`"id":"${elementId}"`)) {
-            const wrapperjs =
-              `__${wrapperName.replace(/\//, '_')}(${JSON.stringify(elementAttributes)});\n`;
-            sections.wrapperjs += wrapperjs;
-          }
           if (!tag.includes('!')) {
             if (sections.wrappers[wrapperName].yrwrapperbody) {
               for (let value of sections.wrappers[wrapperName]
@@ -627,6 +641,10 @@ const core = {
         return;
       }
 
+      // Bug fix: register extension BEFORE parsing its content
+      // to prevent infinite recursion when a wrapper imports itself via !!
+      sections.extensions += '!! ' + wrapperName + '\n';
+
       const _yr = sections.yr;
       sections.yr = {};
 
@@ -639,8 +657,6 @@ const core = {
       const result = this.parse(this.lib(wrapper[0], wrapper[1]).yr, {
         sections, wrapper: `${wrapper.join('/')}`, ...config
       });
-
-      sections.extensions += '!! ' + wrapperName + '\n';
 
         if (!sections.wrappers[wrapperName])
           sections.wrappers[wrapperName] = {};
@@ -715,16 +731,25 @@ const core = {
         section = parsers.namespaces[line].name;
         state.sectionChanged = true;
 
-        if (state.wrapper.length > 0) {
-          const wrapper = state.wrapper[0];
+        // Bug fix: close ALL open wrappers when section changes, innermost first (pop, not shift)
+        while (state.wrapper.length > 0) {
+          const wrapper = state.wrapper[state.wrapper.length - 1];
 
           sections.yr[wrapper.section] =
             sections.yr[wrapper.section].replace(/#@#\n/, '');
 
+          // Close layers created inside this wrapper
+          for (let j = state.layers.length - 1; j >= 0; j--) {
+            const layer = state.layers[j];
+            if (!layer || layer.indentation < wrapper.reference) break;
+            sections[layer.section] += layer.whiteSpace + `</${layer.tag}>\n`;
+            state.layers.pop();
+          }
+
           if (wrapper.wildCard)
             sections[wrapper.section] += wrapper.wildCard + '\n';
 
-          state.wrapper.shift();
+          state.wrapper.pop();
         }
 
         continue;
@@ -861,15 +886,17 @@ const core = {
         sections[wrapper.section] += wrapper.wildCard + '\n';
 
 
-      for (let j = wrapper.layers.length - 1; j >= 0; j--) {
-        const layer = wrapper.layers[j];
+      // Only close layers that were created INSIDE this wrapper (indentation >= wrapper.reference)
+      // External layers (pre-existing before the wrapper) should NOT be closed here
+      for (let j = state.layers.length - 1; j >= 0; j--) {
+        const layer = state.layers[j];
         if (!layer) continue;
+        if (layer.indentation < wrapper.reference) break;
 
         sections[layer.section] +=
-          common.getWhiteSpace(layer.indentation) + `</${layer.tag}>\n`;
+          layer.whiteSpace + `</${layer.tag}>\n`;
 
-        wrapper.layers.pop();
-        state.layers = state.layers.filter(e => e !== layer);
+        state.layers.pop();
       }
 
       state.wrapper.pop();
