@@ -4,4 +4,6 @@
 
 ___deploy
 
+source "$_PROJECT_PATH/actions/common"
+cd "$_PROJECT_PATH"
 gh-pages dist
