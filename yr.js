@@ -149,6 +149,13 @@ function getElementAttributes(line) {
 }
 
 function addIdToElement(line, config, elementId=false) {
+  let tag = line.trim().split(' ')[0];
+
+  if (tag.startsWith('_')) {
+    tag = tag.replace(/^_/, '');
+    if (VOID_TAGS.has(tag) || ['title', 'script', 'style'].includes(tag)) return line;
+  }
+
   if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
     if (!elementId) elementId = '__' + crypto.generateToken(8);
     if (!line.trim().startsWith('_')) elementId = '{{' + elementId;
@@ -182,6 +189,11 @@ function addIdToElement(line, config, elementId=false) {
 
   return line;
 }
+
+const VOID_TAGS = new Set([
+  'area','base','br','col','embed','hr','img','input',
+  'link','meta','param','source','track','wbr'
+]);
 
 const parserFns = {
   array(line, sections, section, state, lineNumber, config={}) {
@@ -253,7 +265,7 @@ const parserFns = {
           if (!layer) continue;
           // Only close layers that belong inside this wrapper (indentation >= wrapper.reference)
           if (layer.indentation >= wrapper.reference) {
-            sections[layer.section] +=
+            if (!VOID_TAGS.has(layer.tag)) sections[layer.section] +=
               layer.whiteSpace + `</${layer.tag}>\n`;
             state.layers.pop();
           } else {
@@ -284,13 +296,13 @@ const parserFns = {
       if (parsedLine.level < state.level) {
         for (let j = state.layers.length; j > parsedLine.level - 1; j--) {
           if (!state.layers[j - 1]) continue;
-          sections[state.layers[j - 1].section] +=
+          if (!VOID_TAGS.has(state.layers[j - 1].tag)) sections[state.layers[j - 1].section] +=
             state.layers[j - 1].whiteSpace + `</${state.layers[j - 1].tag}>\n`;
           state.layers.pop();
         }
       } else if (parsedLine.level === state.level
       && state.element && state.layers.length > 0) {
-        sections[state.layers[state.layers.length - 1].section] +=
+        if (!VOID_TAGS.has(state.layers[state.layers.length - 1].tag)) sections[state.layers[state.layers.length - 1].section] +=
           `</${state.layers[state.layers.length - 1].tag}>\n`;
         state.layers.pop();
       }
@@ -299,7 +311,7 @@ const parserFns = {
     || state.layers[state.layers.length - 1].indentation === parsedLine.indentation)) {
       for (let j = state.layers.length - 1; j >= 0; j--) {
         if (j === -1) continue;
-        sections[state.layers[j].section] +=
+        if (!VOID_TAGS.has(state.layers[j].tag)) sections[state.layers[j].section] +=
           state.layers[j].whiteSpace + `</${state.layers[j].tag}>\n`;
         state.layers.pop();
       }
@@ -315,7 +327,7 @@ const parserFns = {
       if (tag[0] === '_') {
         tag = tag.replace(/__/, '');
         if (!tag) tag = 'div';
-        wildCard += '<!--#@#-->';
+        if (!config.simple) wildCard += '<!--#@#-->';
       }
       let attributes = '', id = '', classes = '';
       for (let item of lineSplit) {
@@ -336,12 +348,22 @@ const parserFns = {
           attributes += ` ${item}`;
         }
       }
-      if (tag.includes('/')) {
+      if (tag.includes('/') && config.simple) {
+        const wrapper = '___' + tag.replace(/!/, '').replace(/\//, '__');
+        tag = 'div';
+        if (!classes) {
+          classes = ` class="${elementId} ${wrapper}"`;
+        } else if (!classes.includes(elementId)) {
+          classes = classes.split('class="').join(`class="${elementId} ${wrapper} `);
+        }
+      } else if (tag.includes('/') && !config.simple) {
         const wrapper = tag.replace(/!/, '').split('/');
         wrapper[0] = utils.capitalize(wrapper[0]);
         wrapper[1] = utils.capitalize(wrapper[1]);
         const wrapperName = wrapper.join('/');
-        core.extend(wrapper, wrapperName, sections, state, { redoWrapper: true });
+        core.extend(wrapper, wrapperName, sections, state, {
+          redoWrapper: true, simple: config.simple
+        });
         let newWrapper, wrapperIndentation;
         if (!tag.includes('!')) {
           newWrapper = {
@@ -614,6 +636,8 @@ const core = {
     }
   },
   extend(wrapper, wrapperName, sections, state, config={}) {
+    if (config.simple && !wrapperName.includes('@')) return;
+
     if (!sections.parsedyr)
       sections.parsedyr = { header: '', body: '', footer: '', scripts: '' };
 
@@ -683,6 +707,317 @@ const core = {
     }
   },
   parse(code, config={}) {
+    if (config.opposite) {
+      const file = code;
+      const isProject = config.isProject;
+      let yrResult = isProject ? '' : '!! @wrapper\n\n';
+
+      const VOID_TAGS = new Set([
+        'area','base','br','col','embed','hr','img','input',
+        'link','meta','param','source','track','wbr'
+      ]);
+
+      const P_BREAKERS = new Set([
+        'address','article','aside','blockquote','div','dl',
+        'fieldset','footer','form','h1','h2','h3','h4','h5','h6',
+        'header','hr','main','nav','ol','p','pre','section','table','ul'
+      ]);
+
+      function tokenize(html) {
+        const tokens = [];
+        let i = 0;
+
+        while (i < html.length) {
+          if (html[i] === '<') {
+            const close = html.indexOf('>', i);
+            if (close === -1) break;
+
+            tokens.push({
+              type: 'tag',
+              value: html.slice(i, close + 1)
+            });
+
+            i = close + 1;
+          } else {
+            const next = html.indexOf('<', i);
+            tokens.push({
+              type: 'text',
+              value: html.slice(i, next === -1 ? html.length : next)
+            });
+            i = next === -1 ? html.length : next;
+          }
+        }
+
+        return tokens;
+      }
+
+      function parseTag(str) {
+        const isClosing = /^<\//.test(str);
+        const isSelfClosing = /\/>$/.test(str);
+
+        const nameMatch = str.match(/^<\/?([a-zA-Z0-9-]+)/);
+        if (!nameMatch) return null;
+
+        const tag = nameMatch[1].toLowerCase();
+
+        const attrs = {};
+        [...str.matchAll(/([\w-:]+)(?:="([^"]*)")?/g)].forEach(m => {
+          const key = m[1];
+          if (key === tag) return;
+          attrs[key] = m[2] ?? true;
+        });
+
+        return { tag, attrs, isClosing, isSelfClosing };
+      }
+
+      function parseHTML(html) {
+        const tokens = tokenize(html);
+
+        const root = { tag: '_root', children: [] };
+        const stack = [root];
+
+        for (let t of tokens) {
+          let current = stack[stack.length - 1];
+
+          if (t.type === 'text') {
+            const text = t.value.trim();
+            if (text) current.children.push({ text });
+            continue;
+          }
+
+          const parsed = parseTag(t.value);
+          if (!parsed) continue;
+
+          const { tag, attrs, isClosing, isSelfClosing } = parsed;
+
+          if (isClosing) {
+            while (stack.length > 1) {
+              const top = stack.pop();
+              if (top.tag === tag) break;
+            }
+            continue;
+          }
+
+          if (current.tag === 'p' && P_BREAKERS.has(tag)) {
+            stack.pop();
+            current = stack[stack.length - 1];
+          }
+
+          const node = { tag, attrs, children: [] };
+          current.children.push(node);
+
+          if (!isSelfClosing && !VOID_TAGS.has(tag)) {
+            stack.push(node);
+          }
+        }
+
+        return root.children;
+      }
+
+      function toYr(nodes, indent = 0) {
+        let out = '';
+
+        for (let node of nodes) {
+          const space = ' '.repeat(indent);
+
+          if (node.text) {
+            let text = node.text;
+
+            if (text.trimStart().startsWith('//')) {
+              text = text.replace(/^(\s*)\/\//, (_, spaces) => {
+                return spaces + '&#47;&#47;';
+              });
+            }
+
+            if (text.trimStart().startsWith('_')) {
+              text = text.replace(/^(\s*)_/, (_, spaces) => {
+                return spaces + '&#95;';
+              });
+            }
+
+            if (text.trimStart().startsWith('.')) {
+              text = text.replace(/^(\s*)\./, (_, spaces) => {
+                return spaces + '&#46;';
+              });
+            }
+
+            out += `${space}${text}\n`;
+            continue;
+          }
+
+          if (node.tag === 'script') continue;
+
+          let line = '_';
+
+          if (node.tag !== 'div') line += node.tag;
+
+          if (node.attrs?.id) line += ` #${node.attrs.id}`;
+
+          if (node.attrs?.class) {
+            const cls = node.attrs.class.split(' ').join('.');
+            line += ` .${cls}`;
+          }
+
+          for (let key in node.attrs) {
+            if (key === 'class' || key === 'id') continue;
+
+            if (node.attrs[key] === true) {
+              line += ` ${key}`;
+            } else {
+              line += ` ${key}="${node.attrs[key]}"`;
+            }
+          }
+
+          out += `${space}${line}\n`;
+
+          if (node.children?.length) {
+            out += toYr(node.children, indent + 2);
+          }
+        }
+
+        return out;
+      }
+
+      function extract(tag, str) {
+        const match = str.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`));
+        return match ? match[1].trim() : '';
+      }
+
+      function formatCSS(css) {
+        if (!css) return '';
+        const comments = [];
+        let normalized = css.replace(/\/\*[\s\S]*?\*\//g, m => {
+          const idx = comments.length;
+          comments.push(m);
+          return `__COMMENT_${idx}__`;
+        });
+
+        normalized = normalized
+          .replace(/\s*\{\s*/g, ' {')
+          .replace(/\s*\}\s*/g, ' }')
+          .replace(/\s*;\s*/g, '; ')
+          .replace(/,\s*/g, ', ')
+          //.replace(/([\w-])\s*:\s*(?!:)/g, '$1: ')
+          .replace(/\s+/g, ' ')
+          .replace(/__COMMENT_(\d+)__/g, (_, i) => '\n' + comments[+i] + '\n')
+          .trim();
+
+        let indent = 0;
+        let out = '';
+        let i = 0;
+
+        while (i < normalized.length) {
+          const char = normalized[i];
+
+          if (char === '{') {
+            out = out.trimEnd();
+            out += ' {\n';
+            indent++;
+            out += '  '.repeat(indent);
+          } else if (char === '}') {
+            indent--;
+            out = out.trimEnd();
+            out += '\n' + '  '.repeat(indent) + '}\n';
+            if (indent >= 0) out += '\n' + '  '.repeat(indent);
+          } else if (char === ';') {
+            out = out.trimEnd();
+            out += ';\n' + '  '.repeat(indent);
+          } else if (char === ' ' && out.endsWith('\n' + '  '.repeat(indent))) {
+          } else {
+            out += char;
+          }
+
+          i++;
+        }
+
+        return out
+          .split('\n')
+          .map(l => l.trimEnd())
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+      }
+
+      function wrapScript(js) {
+        if (!js) return '';
+        let category = '';
+        let option = '';
+
+        const match = js.match(/__([A-Za-z0-9]+)_([A-Za-z0-9]+)/);
+        if (match) {
+          category = match[1];
+          option = match[2];
+        }
+
+        const startBlock =
+`async function __${category}_${option}(_config) {
+    let element = (_config.id === 'body') ? document.body
+      : document.querySelector(\`.\${_config.id}\`);
+    if (!element) return;
+    try {
+      element._config = _config;
+      if (window.__preview) {
+        element._html = element.outerHTML;
+        element._refresh = () => {
+          element.outerHTML = element._html;
+          __Triggers_Disclaimermodal(_config)
+        };
+      }
+      `;
+
+        js = js.replace(startBlock, `_@wrapper(${category}, ${option}) {\n`);
+
+        const catchBlock = `
+    } catch(error) {
+      if (window.__preview || false) {
+        //element.innerHTML = '<div style="background: red; color: white">'
+          //+ \`${category} ${option} error: \${error.message}</div>\`;
+        console.error(error);
+      }
+    }
+  }`;
+
+        js = js.replace(catchBlock, '\n@}');
+        return js;
+      }
+
+      const tree = parseHTML(file);
+
+      const headContent = extract('head', file);
+      const bodyContent = extract('body', file);
+      const styleContent = extract('style', headContent);
+      const scriptContent = extract('script', bodyContent);
+
+      function removeTags(nodes, blacklist = ['style', 'script']) {
+        return nodes
+          .filter(n => !n.tag || !blacklist.includes(n.tag))
+          .map(n => ({
+            ...n,
+            children: n.children ? removeTags(n.children, blacklist) : []
+          }));
+      }
+
+      const cleanTree = removeTags(tree);
+
+      let headNodes = [];
+      let bodyNodes = [];
+
+      for (let n of cleanTree) {
+        if (n.tag === 'html') {
+          for (let c of n.children) {
+            if (c.tag === 'head') headNodes = c.children;
+            if (c.tag === 'body') bodyNodes = c.children;
+          }
+        }
+      }
+
+      yrResult += '>>\n\n' + toYr(headNodes) + '\n\n';
+      yrResult += (isProject ? '<#' : '##') + '\n\n' + formatCSS(styleContent) + '\n\n';
+      yrResult += (isProject ? '><' : '++') + '\n\n' + toYr(bodyNodes) + '\n\n';
+      yrResult += (isProject ? '<@' : '@>') + '\n\n' + wrapScript(scriptContent) + '\n';
+      return yrResult;
+    }
+
     const sections = (config.sections) ? config.sections : parsers.defaults();
 
     const state = {
@@ -742,7 +1077,8 @@ const core = {
           for (let j = state.layers.length - 1; j >= 0; j--) {
             const layer = state.layers[j];
             if (!layer || layer.indentation < wrapper.reference) break;
-            sections[layer.section] += layer.whiteSpace + `</${layer.tag}>\n`;
+            if (!VOID_TAGS.has(layer.tag)) sections[layer.section] +=
+              layer.whiteSpace + `</${layer.tag}>\n`;
             state.layers.pop();
           }
 
@@ -775,7 +1111,9 @@ const core = {
           const wrapper = wrapperName.split('/');
           if (wrapper.length === 1) wrapper.unshift('__');
 
-          this.extend(wrapper, wrapperName, sections, state);
+          this.extend(wrapper, wrapperName, sections, state, {
+            simple: config.simple
+          });
         //} else if (line.startsWith('\\\\')) {
         //  const wrapperName = line.replace(/\\\\/g, '').trim() + '\n';
 
@@ -893,7 +1231,7 @@ const core = {
         if (!layer) continue;
         if (layer.indentation < wrapper.reference) break;
 
-        sections[layer.section] +=
+        if (!VOID_TAGS.has(layer.tag)) sections[layer.section] +=
           layer.whiteSpace + `</${layer.tag}>\n`;
 
         state.layers.pop();
@@ -905,7 +1243,7 @@ const core = {
     for (let j = state.layers.length - 1; j >= 0; j--) {
       if (j === -1) continue;
 
-      sections[state.layers[j].section] +=
+      if (!VOID_TAGS.has(state.layers[j].tag)) sections[state.layers[j].section] +=
         common.getWhiteSpace(state.layers[j].indentation) + `</${state.layers[j].tag}>\n`;
 
       state.layers.pop();
@@ -1302,11 +1640,11 @@ ${(config.name) ? `  <link rel="stylesheet" href="./${config.cssname}.css">` : `
 <body style="display: none">
 ${sections.parsedbody}
 ${sections.parsedfooter}
-</body>
 ${sections.parsedscripts}
 <script id="psj"${(config.name) ? ` src="./${config.jsname}.js">`
   : `>\n${sections.parsedjs}\n`
 }</script>
+</body>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   document.body.style.display = 'block';

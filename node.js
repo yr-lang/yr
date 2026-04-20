@@ -532,7 +532,7 @@ dist/`);
       }
 
       if (result.devops.build) {
-        this.spawn(`${projectPath}/actions/build`, [], () => {
+        if (!config.ignoreBuild) this.spawn(`${projectPath}/actions/build`, [], () => {
           if (config.exec) this.spawn(`${projectPath}/app/app.js`);
         });
       } else if (config.exec) {

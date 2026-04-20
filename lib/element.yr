@@ -189,6 +189,8 @@ function dragElement(
   };
 
   const start = (x, y, e) => {
+    document.querySelectorAll('.drag-clone').forEach(item => item.remove());
+
     X = x; Y = y;
     activeEl = (!options.clone) ? element : createClone();
 
