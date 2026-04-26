@@ -1,0 +1,9 @@
+@@
+
+function windowListener(callback) {
+  if (typeof window.addEventListener != 'undefined') {
+    window.addEventListener('message', callback);
+  } else if (typeof window.attachEvent != 'undefined') {
+    window.attachEvent('onmessage', callback);
+  }
+}

@@ -2,6 +2,12 @@
 
 ___serve
 
+APP_NAME=$(echo $_CONFIG | jq -r .name)
 cd $_PROJECT_PATH
 if [[ ! -d node_modules ]]; then npm i $(cat node_modules.txt); fi
+
+pkill -9 -f "^node app/app.js$"
 node app/app.js
+
+#pkill -9 -f "$APP_NAME" 2>/dev/null
+#exec -a "$APP_NAME" node app/app.js

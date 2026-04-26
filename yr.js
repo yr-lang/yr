@@ -459,6 +459,16 @@ const parserFns = {
   }
 }
 
+function isYrSyntax(code) {
+  code = code.split('!! preview\n!! bodyblock\n!! iframeConsole\n!! element\n').join('');
+  code = code.trim();
+
+  for (let item of [...Object.keys(namespaces), '!!', '[[', '--'])
+    if (code.startsWith(item)) return true;
+
+  return false;
+}
+
 const parsers = {
   namespaces, tokens: Object.keys(namespaces),
   parsers: _parsers, mergers, names,
@@ -707,6 +717,18 @@ const core = {
     }
   },
   parse(code, config={}) {
+    if (!isYrSyntax(code)) {
+      const sections = { parsedhtml: code };
+
+      if (config.name) sections.ui = [{
+        name: (config.name.includes('.html'))
+          ? config.name : `${config.name}.html`,
+        content: sections.parsedhtml
+      }];
+
+      return sections;
+    }
+
     if (config.opposite) {
       const file = code;
       const isProject = config.isProject;
@@ -1615,7 +1637,7 @@ const core = {
     if (sections.apptests.length > 0 && !sections.parsedbody.includes('class="__')) {
       sections.parsedbody += '\n<div class="__cclass"></div>';
 
-      sections.parsedscripts = `<script>
+      sections.parsedscripts = `<s` + `cript>
 try {
 function require(name) {
   //return window[name];
@@ -1627,7 +1649,7 @@ ${sections.parsedjs}
 ${sections.appheader.join('')}
 ${sections.apptests.join('')}
 } catch(error) { console.log(error); }
-</script>`;
+</s` + `cript>`;
     }
 
     sections.parsedhtml = `<!DOCTYPE html>
@@ -1641,15 +1663,15 @@ ${(config.name) ? `  <link rel="stylesheet" href="./${config.cssname}.css">` : `
 ${sections.parsedbody}
 ${sections.parsedfooter}
 ${sections.parsedscripts}
-<script id="psj"${(config.name) ? ` src="./${config.jsname}.js">`
+<s` + `cript id="p` + `sj"${(config.name) ? ` src="./${config.jsname}.js">`
   : `>\n${sections.parsedjs}\n`
-}</script>
+}</s` + `cript>
 </body>
-<script>
+<s` + `cript>
 document.addEventListener('DOMContentLoaded', () => {
   document.body.style.display = 'block';
 });
-</script>
+</s` + `cript>
 </html>`;
 
     if (config.name) sections.ui = [
@@ -1670,4 +1692,13 @@ if (typeof module !== 'undefined' && module.exports)
 if (typeof window !== 'undefined' && !window.yr) {
   const parse = core.parse.bind(core);
   window.yr = parse;
+
+  const createLog = (text) => {
+    const parsed = parse(text);
+    console.log(parsed);
+    document.body.innerHTML += `<div>${text}</div>`;
+    document.body.innerHTML += `<div>${parsed.parsedyr.body}</div>`;
+  };
+
+  createLog('><\n_ .teste');
 }

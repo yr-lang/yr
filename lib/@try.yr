@@ -1,0 +1,9 @@
+%%
+
+_@try(#showError) {
+  try {
+    ___
+  } catch(error) {
+    if (#showError) console.log(error);
+  }
+@}

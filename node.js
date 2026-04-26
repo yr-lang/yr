@@ -241,50 +241,54 @@ module.exports = {
     }
   },
   spawn(path, args=[], callbackClose=false, log=true, exit=false, callbackData=false, callbackError=false) {
-    if (args === '-k') {
-      try {
-        console.log('killing spawn');
-        console.log(path, args);
-        //path.stdin.pause();
-        path.kill();
-        console.log('spawn killed');
-      } catch(error) { console.log(error); }
-
-      return;
-    }
-
     if (log) console.log('starting spawn...');
 
-    const child = spawn(path, args, { shell: true });
-
-    //child.stdin.on('data', function(data){
-    //  console.log(data.toString());
-    //});
-
-    child.stdout.on('data', (data) => {
-      data = data.toString();
-      if (log) console.log(data);
-      if (callbackData) callbackData(data);
+    // garante execução via bash (sem shell intermediário problemático)
+    const child = spawn(path, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true
     });
 
-    child.stderr.on('data', (data) => {
-      data = data.toString();
-      if (log) console.log('\x1b[31m' + data + '\x1b[0m');
-      if (callbackError) callbackError(data);
-    });
+    if (log) console.log('spawn pid:', child.pid);
+
+    if (child.stdout) {
+      child.stdout.on('data', (data) => {
+        data = data.toString();
+        if (log) process.stdout.write(data);
+        if (callbackData) callbackData(data);
+      });
+    }
+
+    if (child.stderr) {
+      child.stderr.on('data', (data) => {
+        data = data.toString();
+        if (log) process.stderr.write(data);
+        if (callbackError) callbackError(data);
+      });
+    }
 
     child.on('exit', (code, signal) => {
-      if (log) console.log('finish spawn\n');
-      //if (state.building === 1) {
-      //  state.building = true;
-      //  return this.devops(appName, deploy, log, exit);
-      //}
-      //state.building = false;
+      if (log) console.log('exit:', { code, signal });
+    });
+
+    child.on('close', (code, signal) => {
+      if (log) console.log('close:', { code, signal });
       if (callbackClose) callbackClose(code, signal);
       if (exit) process.exit();
     });
 
     return child;
+  },
+  kill(child) {
+    if (!child || !child.pid) return;
+
+    try {
+      // mata o grupo inteiro (bash + node + qualquer filho)
+      process.kill(-child.pid, 'SIGTERM');
+      console.log('process group killed:', child.pid);
+    } catch (e) {
+      console.log('kill error:', e);
+    }
   },
   build(projectName=false, config={}, viewsPaths=env.VIEWS, assetsPath=false) {
     if (!config) config = {};
