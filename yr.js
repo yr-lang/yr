@@ -28,6 +28,7 @@ const common = {
 const namespaces = {
   '@&': { name: 'jsapp', parser: 'array', default: [], merge: true },
   '++': { name: 'wrappers', parser: 'auxstring', default: {}, merge: true },
+  '+>': { name: 'wrapperheader', parser: 'html', default: '', merge: true },
   '>+': { name: 'wrapperbody', parser: 'html', default: '', merge: true },
   '><': { name: 'body', parser: 'html', default: '', merge: true },
   '@>': { name: 'jsheader', parser: 'string', default: '', merge: true },
@@ -212,7 +213,7 @@ const parserFns = {
     sections[section] += line + '\n';
   },
   html(line, sections, section, state, lineNumber, config={}) {
-    if (config.ignoreHtml) return;
+    if (config.ignoreHtml && !['wrapperheader', 'header', 'footer', 'scripts'].includes(section)) return;
     if (!sections.yr[section]) sections.yr[section] = '';
     const parsedLine = parseLine(line);
     if (parsedLine.line.startsWith('//')) {
@@ -247,7 +248,8 @@ const parserFns = {
       elementId = '__' + split[1];
       parsedLine.line = split[0].trimEnd();
     }
-    yrParsedLine = addIdToElement(yrParsedLine, config, elementId);
+    if (!['wrapperheader', 'header', 'footer', 'scripts'].includes(section))
+      yrParsedLine = addIdToElement(yrParsedLine, config, elementId);
     let yrIndentation = 0, ignoreYr, wildCard = '', replaceYr;
     // Bug fix: use while loop to close ALL wrappers that need closing (not just one)
     // A single element may need to close multiple nested wrappers at once
@@ -430,7 +432,7 @@ const parserFns = {
           classes = classes.split('class="').join(`class="${elementId} `);
         }
       }
-      if (config.preview) {
+      if (config.preview && !['wrapperheader', 'header', 'footer', 'scripts'].includes(section)) {
         if (!classes) {
           classes = ` class="${elementId}"`;
         } else if (!classes.includes(elementId)) {
@@ -444,7 +446,7 @@ const parserFns = {
       state.element = true;
     } else {
       if (section) {
-        if (section === 'header') {
+        if (section === 'header' || section === 'wrapperheader') {
           sections[section] += parsedLine.whiteSpace + parsedLine.line + '\n';
         } else {
           let attributes = '';
@@ -683,7 +685,7 @@ const core = {
       sections.yr = {};
 
       const aux = {};
-      for (let item of ['header', 'body', 'footer', 'scripts']) {
+      for (let item of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
         aux[item] = sections[item];
         sections[item] = '';
       }
@@ -701,7 +703,7 @@ const core = {
         if (!sections.wrappers[wrapperName].vars)
           sections.wrappers[wrapperName].vars = {};
 
-      for (let item of ['header', 'body', 'footer', 'scripts']) {
+      for (let item of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
         sections.wrappers[wrapperName].parsed[item] = result[item];
         sections[item] = aux[item];
       }
@@ -1199,7 +1201,7 @@ const core = {
       };
 
       const aux = {};
-      for (let item of ['header', 'body', 'footer', 'scripts']) {
+      for (let item of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
         aux[item] = sections[item];
         sections[item] = '';
       }
@@ -1217,7 +1219,7 @@ const core = {
       if (!sections.wrappers[config.wrapper].vars)
         sections.wrappers[config.wrapper].vars = {};
 
-      for (let item of ['header', 'body', 'footer', 'scripts']) {
+      for (let item of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
         sections.wrappers[config.wrapper].parsed[item] = extension[item];
         sections[item] = aux[item]
       }
@@ -1326,7 +1328,7 @@ const core = {
         sections.parsedyr.extensions += item + '\n';
     }
 
-    for (let value of ['header', 'body', 'footer', 'scripts']) {
+    for (let value of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
       if (!sections[value]) sections[value] = '';
       if (!sections.yr[value]) sections.yr[value] = '';
 
@@ -1397,7 +1399,7 @@ const core = {
 
       parsedItem = JSON.parse(`{${parsedItem}}`);
 
-      for (let value of ['header', 'body', 'footer', 'scripts']) {
+      for (let value of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
         if (sections[`parsed${value}`].includes(`${parsedItem.id}`)) {
           parsedItem.attributes = sections
             .wrappers[`${parsedItem.category}/${parsedItem.option}`].vars.attributes;
@@ -1532,7 +1534,7 @@ const core = {
           }
         }
 
-        for (let value of ['header', 'body', 'footer', 'scripts']) {
+        for (let value of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
           if (sections.parsedyr[value].includes(item.replace(/!/g, '')
           .trim().toLowerCase())) {
             newExtensions += item + '\n';
@@ -1553,7 +1555,7 @@ const core = {
             continue;
           }
 
-          for (let key of ['header', 'body', 'footer', 'scripts']) {
+          for (let key of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
             //if (sections.parsedyr[key].includes(`.${value}`)) {
               if (!newCss[item]) newCss[item] = {};
               newCss[item][value] = parsedCss[item][value];
@@ -1568,7 +1570,7 @@ const core = {
       //const templateRegex = id =>
       //  new RegExp(`\\{\\{[^}]*?\\.?${id}\\b[^}]*?\\}\\}`);
 
-      //for (let item of ['header', 'body', 'footer', 'scripts']) {
+      //for (let item of ['wrapperheader', 'header', 'body', 'footer', 'scripts']) {
       //  for (let value of sections.parsedyr[item].split('\n')) {
       //    const match = value.match(/(?:\.|\.\{\{)\s*(__[A-Za-z0-9_-]+)/);
       //    if (!match) continue;
@@ -1625,6 +1627,9 @@ const core = {
 
     if (sections.wrapperjscustom)
       sections.parsedjs += '\n' + sections.wrapperjscustom;
+
+    if (sections.wrapperheader)
+      sections.parsedheader += '\n' + sections.wrapperheader;
 
     if (!config.lang) config.lang = 'en-US';
 

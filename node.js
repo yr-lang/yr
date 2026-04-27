@@ -147,6 +147,8 @@ module.exports = {
     }
 
     delete sections.wrapperjs;
+    delete sections.header;
+    delete sections.footer;
 
     for (let item in sections)
       result += `${core.parsers.names[item]}\n\n${sections[item]}\n`;
