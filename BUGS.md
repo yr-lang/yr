@@ -15,3 +15,62 @@ _ .teste
     _ .teste2
     _wrapper/test2
 ```
+
+### Wrappers calls are not being called in the correct order
+
+e.g, if I have
+
+#### Test/N2
+
+```
+!! @wrapper
+
+++
+
+_ .something
+
+
+@>
+
+_@wrapper(Test, N2) {
+  console.log('n2');
+@}
+```
+
+#### Test/N1
+
+```
+!! @wrapper
+
+++
+
+_test/n2
+
+@>
+
+_@wrapper(Test, N1) {
+  console.log('n1');
+@}
+```
+
+My output becomes
+
+```
+__Teste_N1({});
+__Teste_N2({});
+```
+
+Instead of
+
+```
+__Teste_N2({});
+__Teste_N1({});
+```
+
+That means that the wrapper calls might be swapping the orders, or some other
+behaviour, which is incorrect. The correct would be:
+
+* The calls of the imported wrappers must come first
+
+The workaround for this issues is to add the code that relies on the child
+wrappers calls, inside a `setTimeout`, so it goes to the next event loop.

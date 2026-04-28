@@ -154,7 +154,9 @@ function addIdToElement(line, config, elementId=false) {
 
   if (tag.startsWith('_')) {
     tag = tag.replace(/^_/, '');
-    if (VOID_TAGS.has(tag) || ['title', 'script', 'style'].includes(tag)) return line;
+
+    if ((VOID_TAGS.has(tag) && !['input', 'img'].includes(tag))
+    || ['title', 'script', 'style'].includes(tag)) return line;
   }
 
   if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
@@ -364,7 +366,8 @@ const parserFns = {
         wrapper[1] = utils.capitalize(wrapper[1]);
         const wrapperName = wrapper.join('/');
         core.extend(wrapper, wrapperName, sections, state, {
-          redoWrapper: true, simple: config.simple
+          redoWrapper: true, simple: config.simple,
+          ignoreHtml: config.ignoreHtml
         });
         let newWrapper, wrapperIndentation;
         if (!tag.includes('!')) {
@@ -1136,7 +1139,7 @@ const core = {
           if (wrapper.length === 1) wrapper.unshift('__');
 
           this.extend(wrapper, wrapperName, sections, state, {
-            simple: config.simple
+            simple: config.simple, ignoreHtml: config.ignoreHtml
           });
         //} else if (line.startsWith('\\\\')) {
         //  const wrapperName = line.replace(/\\\\/g, '').trim() + '\n';
@@ -1336,9 +1339,7 @@ const core = {
       sections.parsedyr[value] = sections.yr[value];
 
       for (let item in sections.wrappers) {
-        // fix!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        if (sections.wrappers[item].redone) continue; // this will cause files to be parsed wrongly
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if (sections.wrappers[item].redone && value === 'body') continue;
 
         if (!sections.wrappers[item].yr)
           sections.wrappers[item].yr = {};
@@ -1698,12 +1699,12 @@ if (typeof window !== 'undefined' && !window.yr) {
   const parse = core.parse.bind(core);
   window.yr = parse;
 
-  const createLog = (text) => {
-    const parsed = parse(text);
-    console.log(parsed);
-    document.body.innerHTML += `<div>${text}</div>`;
-    document.body.innerHTML += `<div>${parsed.parsedyr.body}</div>`;
-  };
+  //const createLog = (text) => {
+  //  const parsed = parse(text);
+  //  console.log(parsed);
+  //  document.body.innerHTML += `<div>${text}</div>`;
+  //  document.body.innerHTML += `<div>${parsed.parsedyr.body}</div>`;
+  //};
 
-  createLog('><\n_ .teste');
+  //createLog('><\n_ .teste');
 }
