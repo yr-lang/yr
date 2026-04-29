@@ -16,7 +16,7 @@ _ .teste
     _wrapper/test2
 ```
 
-### Wrappers calls are not being called in the correct order
+### Wrappers calls are not being called in the correct order ✓ Fixed in 0.3.4
 
 e.g, if I have
 

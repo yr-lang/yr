@@ -662,6 +662,8 @@ const core = {
         wrapper[1] = wrapper[1].replace(/!/, '');
         wrapperName = wrapperName.replace(/!/, '');
         config.ignoreHtml = true;
+        sections.wrappers[wrapperName] = sections.wrappers[wrapperName] || {};
+        sections.wrappers[wrapperName].owned = true;
       }
 
       if (!sections.wrapperjs) sections.wrapperjs = '';
@@ -674,7 +676,7 @@ const core = {
 
           sections.wrappers[wrapperName] = newWrapper.wrappers[wrapperName];
           sections.wrappers[wrapperName].redone = true;
-          sections.wrapperjs += newWrapper.wrapperjs;
+          sections.wrapperjs = newWrapper.wrapperjs + sections.wrapperjs;
         }
 
         return;
@@ -1340,6 +1342,7 @@ const core = {
 
       for (let item in sections.wrappers) {
         if (sections.wrappers[item].redone && value === 'body') continue;
+        if (value === 'body' && sections.wrappers[item].owned) continue;
 
         if (!sections.wrappers[item].yr)
           sections.wrappers[item].yr = {};
@@ -1383,10 +1386,9 @@ const core = {
     if (sections.parsedjs !== '')
       sections.parsedjs = this.macros(sections, 'parsedjs');
 
-    let newWrapperJs = '';//const __runenv = async () => {\n';
-    //sections.parsedjs += 'const __runenv = async () => {\n';
+    let newWrapperJs = '';
     const arr = sections.parsedyr.wrapperjs.split('\n');
-    if (code.includes('!! !')) arr.reverse();
+
     for (let item of arr) {
       if (!item) continue;
 
