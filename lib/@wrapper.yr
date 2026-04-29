@@ -1,0 +1,32 @@
+%%
+
+_@wrapper(#category, #option, #debug=false) {
+  async function __#category_#option(_config) {
+    let element = (_config.id === 'body') ? document.body
+      : document.querySelector(`.${_config.id}`);
+
+    if (!element) return;
+
+    try {
+      element._config = _config;
+
+      if (window.__preview) {
+        element._html = element.outerHTML;
+
+        element._refresh = () => {
+          element.outerHTML = element._html;
+          __#category_#option(_config)
+        };
+      }
+
+      ___
+    } catch(error) {
+      if (window.__preview || #debug) {
+        //element.innerHTML = '<div style="background: red; color: white">'
+          //+ `#category #option error: ${error.message}</div>`;
+
+        console.error(error);
+      }
+    }
+  }
+@}
