@@ -18,7 +18,13 @@ For more information on how to use the `yr` API or syntax description with examp
 
 # Try It
 
-Go to [Yrkit App](https://app.yrkit.com) and test the free version of our official app. There you can create `.yr` files or just use the IDE. The premium versions includes visual builders and other tools, so you can create your projects faster.
+Go to [Yrkit App](https://app.yrkit.com) and test the free version of the official app. There you can create `.yr` files or just use the IDE. The premium versions includes visual builders and other tools, so you can create your projects faster.
+
+## Official Tools
+
+- **yr-cli** — Command line tools: build, serve, deploy → [npm](https://npmjs.com/package/@yr-lang/yr-cli) · [GitHub](https://github.com/yr-lang/yr-cli)
+- **Yrkit** — Cloud IDE built on Yr → [yrkit.com](https://yrkit.com)
+- **Docs** → [yr-lang.org/docs](https://yr-lang.org/docs)
 
 #  License
 
