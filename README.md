@@ -16,6 +16,10 @@ The goal of `yr` is to:
 
 For more information on how to use the `yr` API or syntax description with examples, read the [docs](https://github.com/yr-lang/docs) for concise explanation or [Yrci](https://github.com/yr-lang/yr/tree/main/lib/Yrci) for code snippets.
 
-# License
+# Try It
+
+Go to [Yrkit App](https://app.yrkit.com) and test the free version of our official app. There you can create `.yr` files or just use the IDE. The premium versions includes visual builders and other tools, so you can create your projects faster.
+
+#  License
 
 Read the LICENSE for information on how to use or distribute this software. This license should always be available.
