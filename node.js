@@ -382,17 +382,11 @@ module.exports = {
             app[value] = [...new Set([...app[value], ...item.output[value]])];
         }
 
-        let ext = item?.outputs?.devops;
-        if (!ext) ext = [];
-        if (!devops) devops = [];
-        devops = [...ext, ...devops];
+        devops = [...item.output.devops, ...devops];
         result.macros = { ...item.output.macros, ...result.macros };
 
-        let mods = item?.outputs?.modules;
-        if (!mods) mods = [];
-
         result.modules = [...new Set([
-          ...mods, ...result.modules
+          ...item.output.modules, ...result.modules
         ])];
 
         views.push(item);

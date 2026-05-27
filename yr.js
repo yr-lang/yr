@@ -149,49 +149,175 @@ function getElementAttributes(line) {
   return { ...attributes, ...parse };
 }
 
+function splitRespectingQuotes(line) {
+  const tokens = [];
+  let current = '';
+  let inQuote = false;
+  let quoteChar = '';
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (!inQuote && (ch === '"' || ch === "'")) {
+      inQuote = true;
+      quoteChar = ch;
+      current += ch;
+    } else if (inQuote && ch === quoteChar) {
+      inQuote = false;
+      quoteChar = '';
+      current += ch;
+    } else if (!inQuote && ch === ' ') {
+      if (current) tokens.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  if (current) tokens.push(current);
+  return tokens;
+}
+
 function addIdToElement(line, config, elementId=false) {
   let tag = line.trim().split(' ')[0];
-
   if (tag.startsWith('_')) {
     tag = tag.replace(/^_/, '');
-
     if ((VOID_TAGS.has(tag) && !['input', 'img'].includes(tag))
     || ['title', 'script', 'style'].includes(tag)) return line;
   }
-
   if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
     if (!elementId) elementId = '__' + crypto.generateToken(8);
     if (!line.trim().startsWith('_')) elementId = '{{' + elementId;
-
-    let openCase, newLine = '', addedClass;
-    for (let item of line.split(' ')) {
-      if (item.endsWith('{{')) {
-        openCase = true;
-        newLine += item + ' ';
+    let openCase, newLine = '', addedClass, attContent = '';
+    for (let item of splitRespectingQuotes(line)) {
+      if (!openCase) {
+        if (item.endsWith('{{')) {
+          openCase = '}}';
+          attContent += (attContent ? ', ' : '') + item.slice(item.indexOf('{{') + 2).trim();
+          continue;
+        }
+      } else if (openCase === '}}') {
+        if (item === '}}') {
+          openCase = null;
+        } else if (item.endsWith('}}')) {
+          attContent += ' ' + item.slice(0, -2).trim();
+          openCase = null;
+        } else {
+          attContent += ' ' + item;
+        }
         continue;
       }
-
-      if (item.endsWith('}}') && openCase) {
-        openCase = false;
-        newLine += item + ' ';
-        continue;
-      }
-
       if (!openCase && item.startsWith('.') && !addedClass) {
         addedClass = true;
-        item = item.replace(/\./, `.${elementId}.`);
+        item = item.replace(/^\./, `.${elementId}.`);
       }
-
       newLine += item + ' ';
     }
-
     newLine = newLine.trimEnd();
     if (!addedClass) newLine += ` .${elementId}`;
+    if (attContent) newLine += ` att={{ ${attContent} }}`;
     line = newLine;
   }
-
   return line;
 }
+
+//function addIdToElement(line, config, elementId=false) {
+//  let tag = line.trim().split(' ')[0];
+//
+//  if (tag.startsWith('_')) {
+//    tag = tag.replace(/^_/, '');
+//
+//    if ((VOID_TAGS.has(tag) && !['input', 'img'].includes(tag))
+//    || ['title', 'script', 'style'].includes(tag)) return line;
+//  }
+//
+//  if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
+//    if (!elementId) elementId = '__' + crypto.generateToken(8);
+//    if (!line.trim().startsWith('_')) elementId = '{{' + elementId;
+//
+//    let openCase, newLine = '', addedClass, attContent = '';
+//    for (let item of line.split(' ')) {
+//      if (!openCase) {
+//        if (item.endsWith('{{')) {
+//          openCase = '}}';
+//          attContent += (attContent ? ', ' : '') + item.slice(item.indexOf('{{') + 2).trim();
+//          continue;
+//        } else if (item.includes('="') && !item.endsWith('"')) {
+//          openCase = '"';
+//        } else if (item.includes("='") && !item.endsWith("'")) {
+//          openCase = "'";
+//        }
+//      } else if (openCase === '}}') {
+//        if (item === '}}') {
+//          openCase = null;
+//        } else if (item.endsWith('}}')) {
+//          attContent += ' ' + item.slice(0, -2).trim();
+//          openCase = null;
+//        } else {
+//          attContent += ' ' + item;
+//        }
+//        continue;
+//      } else if (item.endsWith(openCase)) {
+//        openCase = null;
+//      } else if (!openCase && item.startsWith('.') && !addedClass) {
+//        addedClass = true;
+//        item = item.replace(/^\./, `.${elementId}.`);
+//      }
+//
+//      newLine += item + ' ';
+//    }
+//
+//    newLine = newLine.trimEnd();
+//    if (!addedClass) newLine += ` .${elementId}`;
+//    if (attContent) newLine += ` att={{ ${attContent} }}`;
+//    line = newLine;
+//  }
+//
+//  return line;
+//}
+
+//function addIdToElement(line, config, elementId=false) {
+//  let tag = line.trim().split(' ')[0];
+//
+//  if (tag.startsWith('_')) {
+//    tag = tag.replace(/^_/, '');
+//
+//    if ((VOID_TAGS.has(tag) && !['input', 'img'].includes(tag))
+//    || ['title', 'script', 'style'].includes(tag)) return line;
+//  }
+//
+//  if (config.preview && !line.includes('.__') && !line.includes('.{{__')) {
+//    if (!elementId) elementId = '__' + crypto.generateToken(8);
+//    if (!line.trim().startsWith('_')) elementId = '{{' + elementId;
+//
+//    let openCase, newLine = '', addedClass;
+//    for (let item of line.split(' ')) {
+//      if (!openCase) {
+//        if (item.endsWith('{{')) {
+//          openCase = '}}';
+//        } else if (item.includes('="') && !item.endsWith('"')) {
+//          openCase = '"';
+//        } else if (item.includes("='") && !item.endsWith("'")) {
+//          openCase = "'";
+//        }
+//      } else if (item.endsWith(openCase)) {
+//        openCase = null;
+//        newLine += item + ' ';
+//        continue;
+//      }
+//
+//      if (!openCase && item.startsWith('.') && !addedClass) {
+//        addedClass = true;
+//        item = item.replace(/^\./, `.${elementId}.`);
+//      }
+//
+//      newLine += item + ' ';
+//    }
+//
+//    newLine = newLine.trimEnd();
+//    if (!addedClass) newLine += ` .${elementId}`;
+//    line = newLine;
+//  }
+//
+//  return line;
+//}
 
 const VOID_TAGS = new Set([
   'area','base','br','col','embed','hr','img','input',
@@ -322,10 +448,12 @@ const parserFns = {
     }
     if (parsedLine.line[0] === '_') {
       const elementAttributes = getElementAttributes(parsedLine.line);
-      const attSplit = parsedLine.line.split(' att={{');
-      if (attSplit.length > 1)
+      let attSplit = parsedLine.line.split(' att={{');
+      while (attSplit.length > 1) {
         parsedLine.line = attSplit[0] + attSplit[1].split('}}')[1];
-      const lineSplit = parsedLine.line.split(' ');
+        attSplit = parsedLine.line.split(' att={{');
+      }
+      const lineSplit = splitRespectingQuotes(parsedLine.line);
       let tag = lineSplit.shift().substring(1);
       if (tag === '') tag = 'div';
       if (tag[0] === '_') {
