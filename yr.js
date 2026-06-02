@@ -534,7 +534,9 @@ const parserFns = {
               for (let value of sections.wrappers[wrapperName]
               .yrwrapperbody.split('\n')) {
                 if (value.trim() === '') continue;
-                value = addIdToElement(value, config);
+                const valueIndent = value.search(/\S/);
+                const valueWhiteSpace = value.slice(0, valueIndent);
+                value = valueWhiteSpace + addIdToElement(value.trim(), config);
                 if (yrIndentation % 2 !== 0) yrIndentation -= 1;
                 if (newWrapper.reference % 2 !== 0) newWrapper.reference -= 1;
                 if (newWrapper.new % 2 !== 0) newWrapper.new -= 1;

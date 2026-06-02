@@ -18,7 +18,9 @@ gh-pages() {
 
   git add .
   git commit -m "# DEPLOY"
+
   git push -f origin main
+  if [[ ! -d "$1" ]]; then exit 1; fi
 
   git branch -D gh-pages
   git checkout -b gh-pages
@@ -34,6 +36,8 @@ gh-pages() {
   git commit -m "# DEPLOY"
   git push -f origin gh-pages
   git checkout main
+
+  rm -rf "$1"
 }
 
 gh-pages_fix() {
