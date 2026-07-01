@@ -212,7 +212,16 @@ function addIdToElement(line, config, elementId=false) {
     }
     newLine = newLine.trimEnd();
     if (!addedClass) newLine += ` .${elementId}`;
-    if (attContent) newLine += ` att={{ ${attContent} }}`;
+    if (attContent) {
+      // Rebuild att={{ from parsed attributes: normalize to double-quoted strings,
+      // bare values for non-strings (e.g. redirect-success: / instead of '/')
+      const parsedAttrs = getElementAttributes(`_ att={{ ${attContent.trim()} }}`);
+      const rebuiltParts = Object.entries(parsedAttrs).map(([k, v]) => {
+        const needsQuotes = /[\s,{}]/.test(v);
+        return `${k}: ${needsQuotes ? `"${v}"` : v}`;
+      });
+      newLine += ` att={{ ${rebuiltParts.join(', ')} }}`;
+    }
     line = newLine;
   }
   return line;

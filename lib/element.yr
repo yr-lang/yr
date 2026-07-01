@@ -14,10 +14,6 @@ _@elementListener(#query, #parent=document, #listener='click') {
   });
 @}
 
-_@eqs(#name, #container, #query, #type='') {
-  const #name = #container.querySelector(#query);
-@}
-
 @>
 
 function eventListener(element, action, callback) {
@@ -50,8 +46,9 @@ function createElement(options={}, listener=false) {
   if (options.selected) element.selected = options.selected;
 
   if (!options.attributes) options.attributes = {};
-  for (let key of Object.keys(options.attributes)) {
-    element.setAttribute(key, options.attributes[key]);
+  for (let key in options.attributes) {
+    if (key === 'value') element.value = options.attributes[key];
+    else element.setAttribute(key, options.attributes[key]);
   }
 
   if (!options.style) options.style = {};
@@ -61,8 +58,8 @@ function createElement(options={}, listener=false) {
 
   if (listener) eventListener(element,
     (options.selector === 'form') ? 'submit'
-      : ((options.selector === 'input' || options.selector === 'select')
-        ? 'change' : 'click'),
+      : ((options.selector === 'input' || options.selector === 'select'
+      || options.selector === 'textarea') ? 'change' : 'click'),
     listener
   );
 
