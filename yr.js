@@ -863,18 +863,6 @@ const core = {
     }
   },
   parse(code, config={}) {
-    if (!isYrSyntax(code)) {
-      const sections = { parsedhtml: code };
-
-      if (config.name) sections.ui = [{
-        name: (config.name.includes('.html'))
-          ? config.name : `${config.name}.html`,
-        content: sections.parsedhtml
-      }];
-
-      return sections;
-    }
-
     if (config.opposite) {
       const file = code;
       const isProject = config.isProject;
@@ -1184,6 +1172,18 @@ const core = {
       yrResult += (isProject ? '><' : '++') + '\n\n' + toYr(bodyNodes) + '\n\n';
       yrResult += (isProject ? '<@' : '@>') + '\n\n' + wrapScript(scriptContent) + '\n';
       return yrResult;
+    }
+
+    if (!isYrSyntax(code)) {
+      const sections = { parsedhtml: code };
+
+      if (config.name) sections.ui = [{
+        name: (config.name.includes('.html'))
+          ? config.name : `${config.name}.html`,
+        content: sections.parsedhtml
+      }];
+
+      return sections;
     }
 
     const sections = (config.sections) ? config.sections : parsers.defaults();
