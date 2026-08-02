@@ -503,7 +503,10 @@ for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
 *\:Zone.Identifier
 node_modules/
 __pycache__/
-dist/`);
+dist/
+.yrkitconf
+package*.json
+app/assets/`);
 
       fs.writeFileSync(projectPath + '/yrconfig.json', JSON.stringify(result.config, null, 2));
       fs.writeFileSync(projectPath + '/app/app.js', result.app);
