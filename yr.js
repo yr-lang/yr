@@ -344,7 +344,7 @@ const parserFns = {
   },
   nosection(line, sections, section, state, lineNumber, config={}) {
     if (line.startsWith('--')) sections.modules =
-      [...sections.modules, ...line.slice(2).trim().split(',')];
+      [...sections.modules, ...line.slice(2).trim().split(',').map(item => item.trim())];
   },
   string(line, sections, section, state, lineNumber, config={}) {
     sections[section] += line + '\n';
@@ -1546,18 +1546,25 @@ const core = {
           parsedItem.attributes = sections
             .wrappers[`${parsedItem.category}/${parsedItem.option}`].vars.attributes;
 
-          const newItem = `__${parsedItem.category}_${parsedItem.option}(${
+          // maybe add await here
+          newWrapperJs += `  __${parsedItem.category}_${parsedItem.option}(${
             JSON.stringify(parsedItem)
-          });`;
-
-          sections.parsedjs += newItem + '\n';
-          newWrapperJs += newItem + '\n';
-          break;
+          });\n`;
         }
       }
     }
-    //newWrapperJs += '};\n__runenv();\n';
-    //sections.parsedjs += '};\n__runenv();\n';
+
+    if (newWrapperJs) {
+      if (!sections.parsedyr) sections.parsedyr = sections.parsedyr = {};
+
+      if (!sections.parsedyr.body)
+        sections.parsedyr.body = sections.parsedyr.body = '';
+
+      sections.parsedjs += `(async () => {\n${
+        (!/\n\s*_![^\s/]+\/[^\s/]+/.test(code)) ? newWrapperJs
+          : newWrapperJs.split('\n').reverse().join('\n')
+      }})();`;
+    }
 
     if (config.preview) {
       function countCharacterOccurrences(str, char) {
