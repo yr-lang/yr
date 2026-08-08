@@ -430,8 +430,13 @@ const window = {
   __api: '',
 };
 const fs = require('fs');
-let _PROJECT_PATH = '${parsePaths(projectPath)}';
 const _globals = [];
+function setGlobal(name, item, subscribe=false) {
+  if (!_globals.includes(name) || subscribe) {
+    global[name] = item;
+    _globals.push(name);
+  }
+}
 function parsePaths(newPaths) {
   let newStrPath = [];
   for (let item of newPaths.split(',')) {
@@ -442,15 +447,17 @@ function parsePaths(newPaths) {
 
   return newStrPath.join(',');
 }
-function setGlobal(name, item, subscribe=false) {
-  if (!_globals.includes(name) || subscribe) {
-    global[name] = item;
-    _globals.push(name);
-  }
-}
-_PROJECT_PATH = parsePaths(_PROJECT_PATH);
-const _config = require(\`\${_PROJECT_PATH}/yrconfig.json\`);
-const env = require(\`\${_PROJECT_PATH}/.env.json\`);
+//let _PROJECT_PATH = '${parsePaths(projectPath)}';
+//_PROJECT_PATH = parsePaths(_PROJECT_PATH);
+//const _config = require(\`\${_PROJECT_PATH}/yrconfig.json\`);
+//const env = require(\`\${_PROJECT_PATH}/.env.json\`);
+setGlobal('path', require('path'));
+const _PROJECT_PATH = path.resolve(process.cwd(), '..');
+const PROJECT_PATH = _PROJECT_PATH;
+const _config = JSON.parse(
+  fs.readFileSync(path.join(PROJECT_PATH, 'yrconfig.json'), 'utf8'));
+const env = JSON.parse(
+  fs.readFileSync(path.join(PROJECT_PATH, '.env.json'), 'utf8'));
 for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
   if (typeof env[item] === 'object') {
     env[item] = parsePaths(env[item].join(',')).split(',');
@@ -503,10 +510,8 @@ for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
 *\:Zone.Identifier
 node_modules/
 __pycache__/
-dist/
-.yrkitconf
 package*.json
-app/assets/`);
+.yrkitconf`);
 
       fs.writeFileSync(projectPath + '/yrconfig.json', JSON.stringify(result.config, null, 2));
       fs.writeFileSync(projectPath + '/app/app.js', result.app);

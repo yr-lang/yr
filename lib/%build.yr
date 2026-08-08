@@ -1,3 +1,4 @@
 **
 
 cd "$_PROJECT_PATH"
+if [[ ! -d node_modules ]]; then npm i $(cat node_modules.txt); fi
