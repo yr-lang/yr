@@ -447,13 +447,13 @@ function parsePaths(newPaths) {
 
   return newStrPath.join(',');
 }
-//let _PROJECT_PATH = '${parsePaths(projectPath)}';
-//_PROJECT_PATH = parsePaths(_PROJECT_PATH);
+setGlobal('path', require('path'));
+let _PROJECT_PATH = '${parsePaths(projectPath)}';
+_PROJECT_PATH = parsePaths(_PROJECT_PATH);
+//const _PROJECT_PATH = path.resolve(process.cwd(), '..');
+const PROJECT_PATH = _PROJECT_PATH;
 //const _config = require(\`\${_PROJECT_PATH}/yrconfig.json\`);
 //const env = require(\`\${_PROJECT_PATH}/.env.json\`);
-setGlobal('path', require('path'));
-const _PROJECT_PATH = path.resolve(process.cwd(), '..');
-const PROJECT_PATH = _PROJECT_PATH;
 const _config = JSON.parse(
   fs.readFileSync(path.join(PROJECT_PATH, 'yrconfig.json'), 'utf8'));
 const env = JSON.parse(
