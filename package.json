@@ -1,6 +1,6 @@
 {
   "name": "@yr-lang/yr",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "Yr is a modern structural language and parser",
   "main": "./node.js",
   "exports": {
