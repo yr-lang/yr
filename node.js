@@ -127,7 +127,7 @@ module.exports = {
     let result = '';
     if (extensions) result += extensions + '\n';
 
-    for (let item of ['nosection', 'extensions']) {
+    for (let item of ['nosection', 'extensions', 'pixel']) {
       if (sections[item]) {
         result += sections[item] + '\n';
         delete sections[item];
