@@ -672,12 +672,11 @@ const parsers = {
 let scriptUrl, builtInLib;
 if (typeof window !== 'undefined') {
   scriptUrl = document.currentScript?.src;
-  async setBuiltInLib() {
-    function getWrapperName(item) {
-      return (item.category && item.category !== 'yr')
-        ? `${item.category}/${item.option}` : item.option;
-    }
-
+  function getWrapperName(item) {
+    return (item.category && item.category !== 'yr')
+      ? `${item.category}/${item.option}` : item.option;
+  }
+  async function setBuiltInLib() {
     console.log(scriptUrl);
     const base = new URL('./lib/', scriptUrl);
     console.log(base);
@@ -687,6 +686,7 @@ if (typeof window !== 'undefined') {
     lib = await res.json();
     console.log(lib);
   }
+  setBuiltInLib();
 }
 
 const core = {
