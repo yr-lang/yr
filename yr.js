@@ -679,7 +679,8 @@ const core = {
           ? `${item.category}/${item.option}` : item.option;
       }
 
-      const base = new URL('./lib/', document.currentScript.src);
+      console.log(document.currentScript);
+      const base = new URL('./lib/', document.currentScript);
       console.log(base);
     }
 
