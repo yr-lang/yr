@@ -74,7 +74,9 @@ for (let item of Object.keys(namespaces)) {
 }
 
 let viewType;
-function transformReact(code, sections, config) {
+function transformReact(code, sections, section, config) {
+  code = module.exports.macros(sections, section);
+
   if (viewType === 'cdn') {
     if (!window.Babel) throw 'Babel unavailable';
     return window.Babel.transform(code, { presets: ['react'] }).code;
@@ -89,12 +91,6 @@ function transformReact(code, sections, config) {
       const esbuild = require('esbuild');
       code = "import React from 'react';\n"
         + "import ReactDOM from 'react-dom/client';\n" + code;
-      console.log(code)
-      console.log(`esbuild.buildSync({
-  stdin: { contents: code, loader: 'jsx', resolveDir: config.projectPath || process.cwd() },
-  bundle: true, write: false, format: 'iife'
-});`);
-
       const result = esbuild.buildSync({
         stdin: {
           contents: code, loader: 'jsx',
@@ -103,7 +99,6 @@ function transformReact(code, sections, config) {
         bundle: true, write: false, format: 'iife',
         nodePaths: [path.join(__dirname, 'node_modules')]
       });
-      console.log(result);
       return result.outputFiles[0].text;
     } catch (error) {
       console.log(error);
@@ -1282,7 +1277,7 @@ const core = {
 
         if (section.endsWith('react')) {
           sections[section.replace(/react/, '')] +=
-            transformReact(sections[section], sections, config) + '\n';
+            transformReact(sections[section], sections, section, config) + '\n';
           sections[section] = '';
           sections.reactUsed = true;
         }
@@ -1386,7 +1381,7 @@ const core = {
 
     if (section.endsWith('react')) {
       sections[section.replace(/react/, '')] +=
-        transformReact(sections[section], sections, config) + '\n';
+        transformReact(sections[section], sections, section, config) + '\n';
       sections[section] = '';
       sections.reactUsed = true;
     }
