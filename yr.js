@@ -1365,6 +1365,7 @@ const core = {
 
           const wrapper = wrapperName.split('/');
           if (wrapper.length === 1) wrapper.unshift('__');
+          console.log(1, wrapper, wrapperName, code);
 
           this.extend(wrapper, wrapperName, sections, state, {
             simple: config.simple, ignoreHtml: config.ignoreHtml
