@@ -703,8 +703,13 @@ if (typeof window !== 'undefined') {
 const core = {
   set(libFn) { this.lib = libFn },
   lib(category=false, option=false, parseConfig=false) {
-    console.log(1);
+    console.log(1, category, option);
     if (typeof window !== 'undefined') {
+      console.log(2, `${
+        (category === '__') ? '' : category + '/'
+      }${option}`.replace(/\.yr/g, ''), builtInLib[`${
+        (category === '__') ? '' : category + '/'
+      }${option}`.replace(/\.yr/g, '')]);
       return (category && option) ? builtInLib[`${
         (category === '__') ? '' : category + '/'
       }${option}`.replace(/\.yr/g, '')] : builtInLib;
