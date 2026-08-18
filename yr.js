@@ -677,25 +677,21 @@ if (typeof window !== 'undefined') {
       ? `${item.category}/${item.option}` : item.option;
   }
   async function setBuiltInLib() {
-    console.log(scriptUrl);
     const base = new URL('./lib/', scriptUrl);
-    console.log(base);
 
     let lib = await fetch(new URL('./cdn.json', base));
     lib = await lib.json();
     for (let item of lib) {
       const wrapperName = getWrapperName(item);
-      console.log(wrapperName);
       delete item.isDir;
       const res = await fetch(new URL(`./${wrapperName}.yr`, base));
-      console.log(res);
       item.yr = await res.text()
-      console.log(item);
-      item.output = core.parse(item.yr);
+      //item.output = core.parse(item.yr);
+      builtInLib[wrapperName] = item;
     }
   }
   setBuiltInLib();
-  console.log(builtInLib);
+  console.log(111, builtInLib);
 }
 
 const core = {
