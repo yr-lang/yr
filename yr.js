@@ -682,11 +682,19 @@ if (typeof window !== 'undefined') {
     console.log(base);
 
     let lib = await fetch(new URL('./cdn.json', base));
-    console.log(lib);
     lib = await lib.json();
-    console.log(lib);
+    for (let item of lib) {
+      const wrapperName = getWrapperName(item);
+      console.log(wrapperName);
+      delete item.isDir;
+      const res = await fetch(new URL(`./${wrapperName}`, base));
+      item.yr = await res.json()
+      console.log(item);
+      item.output = core.parse(item.yr);
+    }
   }
   setBuiltInLib();
+  console.log(builtInLib);
 }
 
 const core = {
