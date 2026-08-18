@@ -73,13 +73,15 @@ for (let item of Object.keys(namespaces)) {
   }
 }
 
-let viewType;
+let viewType, scriptUrl, builtInLib = {};
 function transformReact(code, sections, section, config) {
   code = core.macros(sections, section);
 
   if (viewType === 'cdn') {
     if (!window.Babel) return 'alert("Babel unavailable");';
-    return window.Babel.transform(code, { presets: ['react'] }).code;
+    return window.Babel.transform(code, {
+      presets: ['react', { runtime: 'classic' }]
+    }).code;
   }
 
   if (viewType === 'npm') {
@@ -668,31 +670,6 @@ const parsers = {
     parserFn(line, sections, section, state, lineNumber, config);
   }
 };
-
-let scriptUrl, builtInLib = {};
-if (typeof window !== 'undefined') {
-  scriptUrl = document.currentScript?.src;
-  function getWrapperName(item) {
-    return (item.category && item.category !== 'yr')
-      ? `${item.category}/${item.option}` : item.option;
-  }
-  async function setBuiltInLib() {
-    const base = new URL('./lib/', scriptUrl);
-
-    let lib = await fetch(new URL('./cdn.json', base));
-    lib = await lib.json();
-    for (let item of lib) {
-      const wrapperName = getWrapperName(item);
-      delete item.isDir;
-      const res = await
-        fetch(new URL(encodeURIComponent(`./${wrapperName}.yr`), base));
-      item.yr = await res.text()
-      //item.output = core.parse(item.yr);
-      builtInLib[wrapperName] = item;
-    }
-  }
-  setBuiltInLib();
-}
 
 const core = {
   set(libFn) { this.lib = libFn },
@@ -1941,6 +1918,28 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined' && !window.yr) {
   viewType = 'cdn';
   window.yr = core.parse.bind(core);
+
+  scriptUrl = document.currentScript?.src;
+  function getWrapperName(item) {
+    return (item.category && item.category !== 'yr')
+      ? `${item.category}/${item.option}` : item.option;
+  }
+  async function setBuiltInLib() {
+    const base = new URL('./lib/', scriptUrl);
+
+    let lib = await fetch(new URL('./cdn.json', base));
+    lib = await lib.json();
+    for (let item of lib) {
+      const wrapperName = getWrapperName(item);
+      delete item.isDir;
+      const res = await
+        fetch(new URL(encodeURIComponent(`./${wrapperName}.yr`), base));
+      item.yr = await res.text()
+      //item.output = core.parse(item.yr);
+      builtInLib[wrapperName] = item;
+    }
+  }
+  setBuiltInLib();
 
   //const createLog = (text) => {
   //  const parsed = parse(text);
