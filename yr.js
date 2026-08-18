@@ -681,7 +681,7 @@ if (typeof window !== 'undefined') {
     const base = new URL('./lib/', scriptUrl);
     console.log(base);
 
-    let lib = await fetch('./cdn.json', new URL(scriptUrl));
+    let lib = await fetch(new URL('./cdn.json', base));
     console.log(lib);
     lib = await lib.json();
     console.log(lib);
