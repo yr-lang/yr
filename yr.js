@@ -687,7 +687,8 @@ if (typeof window !== 'undefined') {
       const wrapperName = getWrapperName(item);
       console.log(2, wrapperName);
       delete item.isDir;
-      const res = await fetch(new URL(`./${wrapperName}.yr`, base));
+      const res = await
+        fetch(new URL(encodeURIComponent(`./${wrapperName}.yr`), base));
       console.log(3, res);
       item.yr = await res.text()
       console.log(100000, item);
@@ -705,7 +706,7 @@ const core = {
   lib(category=false, option=false, parseConfig=false) {
     console.log(1, category, option);
     if (typeof window !== 'undefined') {
-      console.log(2, `${
+      console.log(2, builtInLib, `${
         (category === '__') ? '' : category + '/'
       }${option}`.replace(/\.yr/g, ''), builtInLib[`${
         (category === '__') ? '' : category + '/'
