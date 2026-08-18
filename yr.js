@@ -79,10 +79,28 @@ function transformReact(code, sections, section, config) {
 
   if (viewType === 'cdn') {
     if (!window.Babel) return 'alert("Babel unavailable");';
-    return window.Babel.transform(code, {
+    const transformed = window.Babel.transform(code, {
       presets: [['react', { runtime: 'classic' }]],
       plugins: ['transform-modules-commonjs']
     }).code;
+
+    const shim = `
+      const require = (function () {
+        const modules = {
+          'react': window.React,
+          'react-dom': window.ReactDOM,
+          'react-dom/client': window.ReactDOM
+        };
+        return function (name) {
+          if (modules[name]) return modules[name];
+          throw new Error('Módulo não disponível no runtime cdn: ' + name);
+        };
+      })();
+      const exports = {};
+      const module = { exports };
+    `;
+
+    return `(function(){\n${shim}\n${transformed}\n})();`;
   }
 
   if (viewType === 'npm') {
