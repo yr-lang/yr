@@ -36,6 +36,10 @@ const namespaces = {
   '@<': { name: 'jsfooter', parser: 'string', default: '', merge: true },
   '>@': { name: 'wrapperjs', parser: 'string', default: '', merge: true },
   '<@': { name: 'wrapperjscustom', parser: 'string', default: '', merge: true },
+  '@>r': { name: 'jsheaderreact', parser: 'string', default: '', merge: true },
+  '@@r': { name: 'jsreact', parser: 'string', default: '', merge: true },
+  '@<r': { name: 'jsfooterreact', parser: 'string', default: '', merge: true },
+  '<@r': { name: 'wrapperjscustomreact', parser: 'string', default: '', merge: true },
   '""': { name: 'documentation', parser: 'string', default: '' },
   '--': { name: 'modules', parser: 'object', default: [], merge: true },
   '==': { name: 'pixel', parser: 'string', default: '', merge: true },
@@ -66,6 +70,51 @@ for (let item of Object.keys(namespaces)) {
     defaults[namespaces[item].name] = namespaces[item].default;
     if (namespaces[item].merge)
       mergers[namespaces[item].name] = namespaces[item].default;
+  }
+}
+
+let viewType;
+function transformReact(code, sections, config) {
+  if (viewType === 'cdn') {
+    if (!window.Babel) throw 'Babel unavailable';
+    return window.Babel.transform(code, { presets: ['react'] }).code;
+  }
+
+  if (viewType === 'npm') {
+    for (let item of ['react', 'react-dom']) {
+      if (sections.modules.includes(item)) continue;
+      sections.modules.push(item)
+    }
+    try {
+      const esbuild = require('esbuild');
+      code = "import React from 'react';\n"
+        + "import ReactDOM from 'react-dom/client';\n" + code;
+      console.log(code)
+      console.log(`esbuild.buildSync({
+  stdin: { contents: code, loader: 'jsx', resolveDir: config.projectPath || process.cwd() },
+  bundle: true, write: false, format: 'iife'
+});`);
+
+      const result = esbuild.buildSync({
+        stdin: {
+          contents: code, loader: 'jsx',
+          resolveDir: config.projectPath || process.cwd()
+        },
+        bundle: true, write: false, format: 'iife',
+        nodePaths: [path.join(__dirname, 'node_modules')]
+      });
+      console.log(result);
+      return result.outputFiles[0].text;
+    } catch (error) {
+      console.log(error);
+      const unresolved = error.errors
+        && error.errors.some(item => item.text.startsWith('Could not resolve'));
+
+      if (!unresolved) throw error;
+
+      if (sections) sections.reactBuildFailed = true;
+      return '';
+    }
   }
 }
 
@@ -1231,6 +1280,13 @@ const core = {
         if (section === 'macros')
           this.aux(sections, { macrosAux: sections.macrosAux });
 
+        if (section.endsWith('react')) {
+          sections[section.replace(/react/, '')] +=
+            transformReact(sections[section], sections, config) + '\n';
+          sections[section] = '';
+          sections.reactUsed = true;
+        }
+
         section = parsers.namespaces[line].name;
         state.sectionChanged = true;
 
@@ -1326,6 +1382,13 @@ const core = {
       parsers.parse(parser, line, sections, section, state, lineNumber, config);
       state.sectionChanged = false;
       lineNumber++;
+    }
+
+    if (section.endsWith('react')) {
+      sections[section.replace(/react/, '')] +=
+        transformReact(sections[section], sections, config) + '\n';
+      sections[section] = '';
+      sections.reactUsed = true;
     }
 
     section = false;
@@ -1812,6 +1875,10 @@ ${sections.pixel}
 <head>
 ${sections.parsedheader}
 ${(config.name) ? `  <link rel="stylesheet" href="./${config.cssname}.css">` : `  <style>\n${sections.parsedcss}\n</style>`}
+${sections.reactUsed && viewType === 'cdn'
+  ? '  <s' + 'cript src="https://unpkg.com/react@18/umd/react.production.min.js"></scri' + 'pt>\n' +
+    '  <s' + 'cript src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></scri' + 'pt>'
+  : ''}
 </head>
 <body style="display: none">
 ${sections.parsedbody}
@@ -1840,12 +1907,14 @@ document.addEventListener('DOMContentLoaded', () => {
   parsers
 };
 
-if (typeof module !== 'undefined' && module.exports)
+if (typeof module !== 'undefined' && module.exports) {
+  viewType = 'npm';
   module.exports = core;
+}
 
 if (typeof window !== 'undefined' && !window.yr) {
-  const parse = core.parse.bind(core);
-  window.yr = parse;
+  viewType = 'cdn';
+  window.yr = core.parse.bind(core);
 
   //const createLog = (text) => {
   //  const parsed = parse(text);

@@ -10,5 +10,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yr-lang/yr.git"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

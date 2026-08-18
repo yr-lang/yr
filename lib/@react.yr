@@ -1,0 +1,7 @@
+%%
+
+_@renderReact(#query) {
+  ReactDOM.createRoot(document.getElementById(#query)).render(
+    ___
+  );
+@}
