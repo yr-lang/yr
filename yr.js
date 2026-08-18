@@ -78,7 +78,7 @@ function transformReact(code, sections, section, config) {
   code = core.macros(sections, section);
 
   if (viewType === 'cdn') {
-    if (!window.Babel) return '';
+    if (!window.Babel) return 'alert("Babel unavailable");';
     return window.Babel.transform(code, { presets: ['react'] }).code;
   }
 
