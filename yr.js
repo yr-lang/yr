@@ -75,7 +75,7 @@ for (let item of Object.keys(namespaces)) {
 
 let viewType;
 function transformReact(code, sections, section, config) {
-  code = module.exports.macros(sections, section);
+  code = core.macros(sections, section);
 
   if (viewType === 'cdn') {
     if (!window.Babel) throw 'Babel unavailable';
