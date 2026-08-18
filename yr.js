@@ -669,7 +669,7 @@ const parsers = {
   }
 };
 
-let scriptUrl, builtInLib;
+let scriptUrl, builtInLib = {};
 if (typeof window !== 'undefined') {
   scriptUrl = document.currentScript?.src;
   function getWrapperName(item) {
