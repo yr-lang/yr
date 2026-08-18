@@ -78,7 +78,7 @@ function transformReact(code, sections, section, config) {
   code = core.macros(sections, section);
 
   if (viewType === 'cdn') {
-    if (!window.Babel) throw 'Babel unavailable';
+    if (!window.Babel) return '';
     return window.Babel.transform(code, { presets: ['react'] }).code;
   }
 
@@ -681,36 +681,23 @@ if (typeof window !== 'undefined') {
 
     let lib = await fetch(new URL('./cdn.json', base));
     lib = await lib.json();
-    console.log(0, lib);
     for (let item of lib) {
-      console.log(1, item);
       const wrapperName = getWrapperName(item);
-      console.log(2, wrapperName);
       delete item.isDir;
       const res = await
         fetch(new URL(encodeURIComponent(`./${wrapperName}.yr`), base));
-      console.log(3, res);
       item.yr = await res.text()
-      console.log(100000, item);
       //item.output = core.parse(item.yr);
       builtInLib[wrapperName] = item;
-      console.log(4, builtInLib);
     }
   }
   setBuiltInLib();
-  console.log(111, builtInLib);
 }
 
 const core = {
   set(libFn) { this.lib = libFn },
   lib(category=false, option=false, parseConfig=false) {
-    console.log(1, category, option);
     if (typeof window !== 'undefined') {
-      console.log(2, builtInLib, `${
-        (category === '__') ? '' : category + '/'
-      }${option}`.replace(/\.yr/g, ''), builtInLib[`${
-        (category === '__') ? '' : category + '/'
-      }${option}`.replace(/\.yr/g, '')]);
       return (category && option) ? builtInLib[`${
         (category === '__') ? '' : category + '/'
       }${option}`.replace(/\.yr/g, '')] : builtInLib;
@@ -921,8 +908,6 @@ const core = {
         aux[item] = sections[item];
         sections[item] = '';
       }
-      console.log(wrapper[0], wrapper[1]);
-      console.log(this.lib(wrapper[0], wrapper[1]));
 
       const result = this.parse(this.lib(wrapper[0], wrapper[1]).yr, {
         sections, wrapper: `${wrapper.join('/')}`, ...config
@@ -1375,7 +1360,6 @@ const core = {
 
           const wrapper = wrapperName.split('/');
           if (wrapper.length === 1) wrapper.unshift('__');
-          console.log(1, wrapper, wrapperName, code);
 
           this.extend(wrapper, wrapperName, sections, state, {
             simple: config.simple, ignoreHtml: config.ignoreHtml
