@@ -672,16 +672,6 @@ const parsers = {
 let scriptUrl, builtInLib = {};
 if (typeof window !== 'undefined') {
   scriptUrl = document.currentScript?.src;
-  const scripts = [
-    'https://unpkg.com/react@18/umd/react.production.min.js',
-    'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-    //'https://unpkg.com/@babel/standalone/babel.min.js'
-  ];
-  for (const src of scripts) {
-    const script = document.createElement('script');
-    script.src = src;
-    document.head.appendChild(script);
-  }
   function getWrapperName(item) {
     return (item.category && item.category !== 'yr')
       ? `${item.category}/${item.option}` : item.option;
@@ -1911,6 +1901,10 @@ ${sections.pixel}
 <head>
 ${sections.parsedheader}
 ${(config.name) ? `  <link rel="stylesheet" href="./${config.cssname}.css">` : `  <style>\n${sections.parsedcss}\n</style>`}
+${sections.reactUsed && viewType === 'cdn'
+  ? '  <s' + 'cript src="https://unpkg.com/react@18/umd/react.production.min.js"></scri' + 'pt>\n' +
+    '  <s' + 'cript src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></scri' + 'pt>'
+  : ''}
 </head>
 <body style="display: none">
 ${sections.parsedbody}
