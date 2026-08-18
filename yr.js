@@ -683,7 +683,7 @@ if (typeof window !== 'undefined') {
 
     let lib = await fetch('./cdn.json', new URL(scriptUrl));
     console.log(lib);
-    lib = await res.json();
+    lib = await lib.json();
     console.log(lib);
   }
   setBuiltInLib();
