@@ -687,7 +687,7 @@ if (typeof window !== 'undefined') {
       const wrapperName = getWrapperName(item);
       console.log(wrapperName);
       delete item.isDir;
-      const res = await fetch(new URL(`./${wrapperName}`, base));
+      const res = await fetch(new URL(`./${wrapperName}.yr`, base));
       item.yr = await res.json()
       console.log(item);
       item.output = core.parse(item.yr);
