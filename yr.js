@@ -1937,15 +1937,23 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined' && !window.yr) {
   viewType = 'cdn';
   window.yr = core.parse.bind(core);
-
   scriptUrl = document.currentScript?.src;
+  const scripts = [
+    'https://unpkg.com/react@18/umd/react.production.min.js',
+    'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+    'https://unpkg.com/@babel/standalone/babel.min.js'
+  ];
+  scripts.forEach(src => {
+    const script = document.createElement('script');
+    script.src = src;
+    document.head.appendChild(script);
+  });
   function getWrapperName(item) {
     return (item.category && item.category !== 'yr')
       ? `${item.category}/${item.option}` : item.option;
   }
   async function setBuiltInLib() {
     const base = new URL('./lib/', scriptUrl);
-
     let lib = await fetch(new URL('./cdn.json', base));
     lib = await lib.json();
     for (let item of lib) {
