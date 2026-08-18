@@ -705,7 +705,9 @@ const core = {
   lib(category=false, option=false, parseConfig=false) {
     console.log(1);
     if (typeof window !== 'undefined') {
-      return builtInLib;
+      return (category && option) ? builtInLib[`${
+        (category === '__') ? '' : category + '/'
+      }${option}`.replace(/\.yr/g, '')] : builtInLib;
     }
 
     return { yr: '++\n\n_' };
@@ -913,6 +915,8 @@ const core = {
         aux[item] = sections[item];
         sections[item] = '';
       }
+      console.log(wrapper[0], wrapper[1]);
+      console.log(this.lib(wrapper[0], wrapper[1]));
 
       const result = this.parse(this.lib(wrapper[0], wrapper[1]).yr, {
         sections, wrapper: `${wrapper.join('/')}`, ...config
