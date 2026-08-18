@@ -80,7 +80,8 @@ function transformReact(code, sections, section, config) {
   if (viewType === 'cdn') {
     if (!window.Babel) return 'alert("Babel unavailable");';
     return window.Babel.transform(code, {
-      presets: ['react', { runtime: 'classic' }]
+      presets: [['react', { runtime: 'classic' }]],
+      plugins: ['transform-modules-commonjs']
     }).code;
   }
 
