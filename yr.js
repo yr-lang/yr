@@ -672,6 +672,7 @@ const parsers = {
 const core = {
   set(libFn) { this.lib = libFn },
   lib(category=false, option=false, parseConfig=false) {
+    console.log(1);
     if (typeof window !== 'undefined') {
       function getWrapperName(item) {
         return (item.category && item.category !== 'yr')
