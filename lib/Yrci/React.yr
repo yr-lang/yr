@@ -1,0 +1,22 @@
+!! @react
+
+++
+
+_ #root
+
+@@r
+
+_@renderReact('#root') {
+  const [count, setCount] = useState(0);
+  const [message, setMessage] = useState('Loading...');
+  useEffect(() => setMessage(`Count is ${count}`), [count]);
+  return (
+    <div>
+      <h1>Simple React App</h1>
+      <p>{message}</p>
+      <button onClick={() => setCount(count + 1)}>
+        Count: {count}
+      </button>
+    </div>
+  );
+@}

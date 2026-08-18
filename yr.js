@@ -672,6 +672,16 @@ const parsers = {
 const core = {
   set(libFn) { this.lib = libFn },
   lib(category=false, option=false, parseConfig=false) {
+    if (typeof window !== 'undefined') {
+      function getWrapperName(item) {
+        return (item.category && item.category !== 'yr')
+          ? `${item.category}/${item.option}` : item.option;
+      }
+
+      const base = new URL('./lib/', document.currentScript.src);
+      console.log(base);
+    }
+
     return { yr: '++\n\n_' };
   },
   macros(sections, key, obfuscate=false) {

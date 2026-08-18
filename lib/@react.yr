@@ -1,7 +1,10 @@
 %%
 
-_@renderReact(#query) {
-  ReactDOM.createRoot(document.querySelector(#query)).render(
+_@renderReact(#query, #app=App) {
+  import { useState, useEffect } from "react";
+  function #app() {
     ___
-  );
+  }
+  ReactDOM.createRoot(document.querySelector(#query))
+    .render(<#app />);
 @}
