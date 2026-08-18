@@ -696,9 +696,7 @@ if (typeof window !== 'undefined') {
       console.log(4, builtInLib);
     }
   }
-  try {
-    await setBuiltInLib();
-  } catch(error) { console.log(error); }
+  setBuiltInLib();
   console.log(111, builtInLib);
 }
 
