@@ -669,6 +669,8 @@ const parsers = {
   }
 };
 
+const scriptUrl = document.currentScript?.src;
+
 const core = {
   set(libFn) { this.lib = libFn },
   lib(category=false, option=false, parseConfig=false) {
@@ -679,8 +681,8 @@ const core = {
           ? `${item.category}/${item.option}` : item.option;
       }
 
-      console.log(document.currentScript);
-      const base = new URL('./lib/', document.currentScript);
+      console.log(scriptUrl);
+      const base = new URL('./lib/', scriptUrl);
       console.log(base);
     }
 
