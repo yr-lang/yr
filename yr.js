@@ -669,21 +669,32 @@ const parsers = {
   }
 };
 
-const scriptUrl = document.currentScript?.src;
+let scriptUrl, builtInLib;
+if (typeof window !== 'undefined') {
+  scriptUrl = document.currentScript?.src;
+  async setBuiltInLib() {
+    function getWrapperName(item) {
+      return (item.category && item.category !== 'yr')
+        ? `${item.category}/${item.option}` : item.option;
+    }
+
+    console.log(scriptUrl);
+    const base = new URL('./lib/', scriptUrl);
+    console.log(base);
+
+    let lib = await fetch('./cdn.json', new URL(scriptUrl));
+    console.log(lib);
+    lib = await res.json();
+    console.log(lib);
+  }
+}
 
 const core = {
   set(libFn) { this.lib = libFn },
   lib(category=false, option=false, parseConfig=false) {
     console.log(1);
     if (typeof window !== 'undefined') {
-      function getWrapperName(item) {
-        return (item.category && item.category !== 'yr')
-          ? `${item.category}/${item.option}` : item.option;
-      }
-
-      console.log(scriptUrl);
-      const base = new URL('./lib/', scriptUrl);
-      console.log(base);
+      return builtInLib;
     }
 
     return { yr: '++\n\n_' };
