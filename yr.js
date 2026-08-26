@@ -40,6 +40,14 @@ const namespaces = {
   '@@r': { name: 'jsreact', parser: 'string', default: '', merge: true },
   '@<r': { name: 'jsfooterreact', parser: 'string', default: '', merge: true },
   '<@r': { name: 'wrapperjscustomreact', parser: 'string', default: '', merge: true },
+  '@@t':  { name: 'jsts',  parser: 'string', default: '', merge: true },
+  '@>t':  { name: 'jsheaderts', parser: 'string', default: '', merge: true },
+  '@<t':  { name: 'jsfooterts', parser: 'string', default: '', merge: true },
+  '<@t': { name: 'wrapperjscustomts', parser: 'string', default: '', merge: true },
+  '@@x':  { name: 'jstsx', parser: 'string', default: '', merge: true },
+  '@>x':  { name: 'jsheadertsx', parser: 'string', default: '', merge: true },
+  '@<x':  { name: 'jsfootertsx', parser: 'string', default: '', merge: true },
+  '<@x': { name: 'wrapperjscustomtsx', parser: 'string', default: '', merge: true },
   '""': { name: 'documentation', parser: 'string', default: '' },
   '--': { name: 'modules', parser: 'object', default: [], merge: true },
   '==': { name: 'pixel', parser: 'string', default: '', merge: true },
@@ -74,23 +82,67 @@ for (let item of Object.keys(namespaces)) {
 }
 
 let viewType, scriptUrl, builtInLib = {};
-function transformReact(code, sections, section, config) {
+
+const JS_KINDS = {
+  react: {
+    suffix: 'react',
+    loader: 'jsx',
+    babelPresets: [['react', { runtime: 'classic' }]],
+    modules: ['react', 'react-dom'],
+    npmImports: "import React from 'react';\nimport ReactDOM from 'react-dom/client';\n",
+    cdnShimModules: {
+      'react': 'window.React',
+      'react-dom': 'window.ReactDOM',
+      'react-dom/client': 'window.ReactDOM'
+    }
+  },
+  ts: {
+    suffix: 'ts',
+    loader: 'ts',
+    babelPresets: ['typescript'],
+    modules: [],
+    npmImports: '',
+    cdnShimModules: {}
+  },
+  tsx: {
+    suffix: 'tsx',
+    loader: 'tsx',
+    babelPresets: [['react', { runtime: 'classic' }], 'typescript'],
+    modules: ['react', 'react-dom'],
+    npmImports: "import React from 'react';\nimport ReactDOM from 'react-dom/client';\n",
+    cdnShimModules: {
+      'react': 'window.React',
+      'react-dom': 'window.ReactDOM',
+      'react-dom/client': 'window.ReactDOM'
+    }
+  }
+};
+
+function transformJS(code, kind, sections, section, config) {
+  const spec = JS_KINDS[kind];
+  if (!spec) throw `Yr: tipo desconhecido em transformJS: ${kind}`;
+
   code = core.macros(sections, section);
 
   if (viewType === 'cdn') {
-    if (!window.Babel) return 'alert("Babel unavailable");';
+    if (!window.Babel) return `alert("Babel unavailable (${kind})");`;
+
+    const needsShim = Object.keys(spec.cdnShimModules).length > 0;
+    const plugins = needsShim ? ['transform-modules-commonjs'] : [];
+
     const transformed = window.Babel.transform(code, {
-      presets: [['react', { runtime: 'classic' }]],
-      plugins: ['transform-modules-commonjs']
+      presets: spec.babelPresets, plugins,
+      filename: `file.${kind === 'react' ? 'jsx' : kind}`
     }).code;
+
+    if (!needsShim) return transformed; // ts puro não importa nada shimável, não precisa embrulhar
+
+    const shimEntries = Object.entries(spec.cdnShimModules)
+      .map(([name, ref]) => `'${name}': ${ref}`).join(',\n          ');
 
     const shim = `
       const require = (function () {
-        const modules = {
-          'react': window.React,
-          'react-dom': window.ReactDOM,
-          'react-dom/client': window.ReactDOM
-        };
+        const modules = { ${shimEntries} };
         return function (name) {
           if (modules[name]) return modules[name];
           throw new Error('Módulo não disponível no runtime cdn: ' + name);
@@ -104,17 +156,17 @@ function transformReact(code, sections, section, config) {
   }
 
   if (viewType === 'npm') {
-    for (let item of ['react', 'react-dom']) {
+    for (let item of spec.modules) {
       if (sections.modules.includes(item)) continue;
-      sections.modules.push(item)
+      sections.modules.push(item);
     }
+
     try {
       const esbuild = require('esbuild');
-      code = "import React from 'react';\n"
-        + "import ReactDOM from 'react-dom/client';\n" + code;
+      code = spec.npmImports + code;
       const result = esbuild.buildSync({
         stdin: {
-          contents: code, loader: 'jsx',
+          contents: code, loader: spec.loader,
           resolveDir: config.projectPath || process.cwd()
         },
         bundle: true, write: false, format: 'iife',
@@ -129,7 +181,7 @@ function transformReact(code, sections, section, config) {
       if (!unresolved) throw error;
 
       if (sections) sections.reactBuildFailed = true;
-      return 'alert("esbuild error");';
+      return `alert("esbuild error (${kind})");`;
     }
   }
 }
@@ -1302,12 +1354,16 @@ const core = {
         if (section === 'macros')
           this.aux(sections, { macrosAux: sections.macrosAux });
 
-        if (section.endsWith('react')) {
-          sections[section.replace(/react/, '')] +=
-            transformReact(sections[section], sections, section, config) + '\n';
-          sections[section] = '';
-          sections.reactUsed = true;
-        }
+for (let kind in JS_KINDS) {
+  const suffix = JS_KINDS[kind].suffix;
+  if (section.endsWith(suffix)) {
+    sections[section.slice(0, -suffix.length)] +=
+      transformJS(sections[section], kind, sections, config) + '\n';
+    sections[section] = '';
+    if (JS_KINDS[kind].modules.includes('react')) sections.reactUsed = true;
+    break;
+  }
+}
 
         section = parsers.namespaces[line].name;
         state.sectionChanged = true;
@@ -1406,12 +1462,16 @@ const core = {
       lineNumber++;
     }
 
-    if (section.endsWith('react')) {
-      sections[section.replace(/react/, '')] +=
-        transformReact(sections[section], sections, section, config) + '\n';
-      sections[section] = '';
-      sections.reactUsed = true;
-    }
+for (let kind in JS_KINDS) {
+  const suffix = JS_KINDS[kind].suffix;
+  if (section.endsWith(suffix)) {
+    sections[section.slice(0, -suffix.length)] +=
+      transformJS(sections[section], kind, sections, config) + '\n';
+    sections[section] = '';
+    if (JS_KINDS[kind].modules.includes('react')) sections.reactUsed = true;
+    break;
+  }
+}
 
     section = false;
 

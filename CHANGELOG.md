@@ -1,10 +1,16 @@
 # Changelog
 
+## [0.4.0] - 2026-08-18
+
+Added React sections: `@@r`, `@@r`, `@<r`
+
+See `/tests/Yrci/React.yr` to see an example
+
 ## [0.3.0] - 2026-04-27
 
-Remove `wrapperheader`, `header`, `scripts` and `footer` from parsedYr
-Created `wrapperheader` sections
-Added `VOID_TAGS` in order to not add elementId to all elements `if (preview === true)`
+* Remove `wrapperheader`, `header`, `scripts` and `footer` from parsedYr
+* Created `wrapperheader` sections
+* Added `VOID_TAGS` in order to not add elementId to all elements `if (preview === true)`
 
 ## [0.2.0] - 2026-03-01
 

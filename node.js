@@ -501,7 +501,7 @@ for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
         env.BUILDS, projectPath,
         `${projectPath}/www`, `${projectPath}/www/assets`,
         `${projectPath}/app`, `${projectPath}/app/assets`,
-        `${projectPath}/actions`
+        `${projectPath}/actions`, `${projectPath}/bin`
       ]) { if (!fs.existsSync(item)) fs.mkdirSync(item, { recursive: true }); }
 
       fs.writeFileSync(projectPath + '/.gitignore', `*/node_modules/
@@ -527,6 +527,17 @@ package*.json
       fs.writeFileSync(`${projectPath}/requirements.txt`, requirements);
 
       for (let item in result.devops) {
+        if (result.devops[item].split('\n')[0].endsWith('cpp')) {
+          let _code = result.devops[item].split('\n');
+          _code.shift();
+          _code = _code.join('\n').trim();
+          let filename = item;
+          if (!filename.endsWith('.cpp')) filename += '.cpp';
+          const srcPath= `${projectPath}/bin/${item}.cpp`;
+          fs.writeFileSync(srcPath, _code);
+          spawn('g++', [srcPath, '-o', `${projectPath}/bin/${item}.exe`, '-O2']);
+          continue;
+        }
         fs.writeFileSync(`${projectPath}/actions/${item}`, result.devops[item])
         spawn('chmod', ['+x', `${projectPath}/actions/${item}`]);
       }
