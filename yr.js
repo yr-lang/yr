@@ -167,7 +167,7 @@ function transformJS(code, kind, sections, section, config) {
       const result = esbuild.buildSync({
         stdin: {
           contents: code, loader: spec.loader,
-          resolveDir: config.projectPath || process.cwd()
+          resolveDir: config?.projectPath || process.cwd()
         },
         bundle: true, write: false, format: 'iife',
         nodePaths: [path.join(__dirname, 'node_modules')]
