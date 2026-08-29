@@ -1358,7 +1358,7 @@ for (let kind in JS_KINDS) {
   const suffix = JS_KINDS[kind].suffix;
   if (section.endsWith(suffix)) {
     sections[section.slice(0, -suffix.length)] +=
-      transformJS(sections[section], kind, sections, config) + '\n';
+      transformJS(sections[section], kind, sections, section, config) + '\n';
     sections[section] = '';
     if (JS_KINDS[kind].modules.includes('react')) sections.reactUsed = true;
     break;
@@ -1466,7 +1466,7 @@ for (let kind in JS_KINDS) {
   const suffix = JS_KINDS[kind].suffix;
   if (section.endsWith(suffix)) {
     sections[section.slice(0, -suffix.length)] +=
-      transformJS(sections[section], kind, sections, config) + '\n';
+      transformJS(sections[section], kind, sections, section, config) + '\n';
     sections[section] = '';
     if (JS_KINDS[kind].modules.includes('react')) sections.reactUsed = true;
     break;
