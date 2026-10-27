@@ -229,8 +229,12 @@ module.exports = {
     for (let item of ['TREE', 'BUILDS', 'VIEWS', 'CONFIG']) {
       if (item === 'TREE') {
         env.LIBS = [yrlib];
-        if (env.BUILDS) env.LIBS = [env.BUILDS, yrlib];
-        if (newEnv.BUILDS) newEnv.LIBS = [newEnv.BUILDS, yrlib];
+        if (env.BUILDS) env.LIBS = [...this.tree(parsePaths(env.BUILDS, true), {
+          onlyLibs: true, filesFirst: true
+        }), yrlib];
+        if (newEnv.BUILDS) env.LIBS = [...this.tree(parsePaths(newEnv.BUILDS, true), {
+          onlyLibs: true, filesFirst: true
+        }), yrlib];
 
         if (newEnv.TREE) {
           for (let value of newEnv.TREE) env.LIBS = [ ...env.LIBS,
