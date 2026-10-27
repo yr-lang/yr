@@ -709,9 +709,10 @@ const parserFns = {
           sections[section] += parsedLine.whiteSpace + parsedLine.line + '\n';
         } else {
           let attributes = '';
-          if (config.preview) elementId += ' _yrtext';
-          sections[section] +=
-            `${parsedLine.whiteSpace}<span class="${elementId}"${attributes}>${parsedLine.line}</span>\n`;
+          //if (config.preview) elementId += ' _yrtext';
+          //sections[section] +=
+          //  `${parsedLine.whiteSpace}<span class="${elementId}"${attributes}>${parsedLine.line}</span>\n`;
+          sections[section] += parsedLine.line;
         }
       }
       state.element = false;

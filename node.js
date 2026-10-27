@@ -7,7 +7,7 @@ const yrlib = __dirname + '/lib';
 
 const env = {
   HOME: process.env.HOME,
-  LIBS: [yrlib, process.env.HOME + '/.yrlibs'],
+  LIBS: [process.env.HOME + '/.yrb', yrlib, process.env.HOME + '/.yrlibs'],
   BUILDS: process.env.HOME + '/.yrb'
 };
 
@@ -229,6 +229,8 @@ module.exports = {
     for (let item of ['TREE', 'BUILDS', 'VIEWS', 'CONFIG']) {
       if (item === 'TREE') {
         env.LIBS = [yrlib];
+        if (env.BUILDS) env.LIBS = [env.BUILDS, yrlib];
+        if (newEnv.BUILDS) newEnv.LIBS = [newEnv.BUILDS, yrlib];
 
         if (newEnv.TREE) {
           for (let value of newEnv.TREE) env.LIBS = [ ...env.LIBS,
@@ -314,7 +316,7 @@ module.exports = {
     const app = { jsapp: [], appheader: [], app: [], appfooter: [] };
     let devops = [];
 
-    const buildWithPages = [];
+    /*const buildWithPages = [];
     if (result.config.config.buildWith) {
       for (let value of result.config.config.buildWith) {
         const appName = (value.includes(':')) ? value.split(':')[0] : value;
@@ -336,7 +338,7 @@ module.exports = {
         } });
       }
     }
-    if (buildWithPages.length > 0) viewsPaths.push({ pages: buildWithPages });
+    if (buildWithPages.length > 0) viewsPaths.push({ pages: buildWithPages });*/
 
     for (let value of viewsPaths) {
       let pages = [], ignoreViews;
@@ -501,7 +503,8 @@ for (let item of ['HOME', 'LIBS', 'BUILDS', 'TREE', 'CONFIG']) {
         env.BUILDS, projectPath,
         `${projectPath}/www`, `${projectPath}/www/assets`,
         `${projectPath}/app`, `${projectPath}/app/assets`,
-        `${projectPath}/actions`, `${projectPath}/bin`
+        `${projectPath}/actions`, `${projectPath}/bin`,
+        `${projectPath}/static`
       ]) { if (!fs.existsSync(item)) fs.mkdirSync(item, { recursive: true }); }
 
       fs.writeFileSync(projectPath + '/.gitignore', `*/node_modules/
@@ -535,7 +538,7 @@ package*.json
           if (!filename.endsWith('.cpp')) filename += '.cpp';
           const srcPath= `${projectPath}/bin/${item}.cpp`;
           fs.writeFileSync(srcPath, _code);
-          spawn('g++', [srcPath, '-o', `${projectPath}/bin/${item}.exe`, '-O2']);
+          //spawn('g++', [srcPath, '-o', `${projectPath}/bin/${item}.exe`, '-O2']);
           continue;
         }
         fs.writeFileSync(`${projectPath}/actions/${item}`, result.devops[item])
@@ -630,9 +633,9 @@ cp -r "$_PROJECT_PATH/www/" "$_PROJECT_PATH/dist/"
 cp -r "$_PROJECT_PATH/static/." "$_PROJECT_PATH/dist/"` : ''}\n`;
     };
 
-    const getDefaultDevops = (name) => this.parse(fs.readFileSync(`${
+    /*const getDefaultDevops = (name) => this.parse(fs.readFileSync(`${
       env.HOME
-    }/_yrs/yrlib/%${name}.yr`, 'utf8'), { onlySections: true, ignoreYr: true }).devops[name];
+    }/_yrs/yrlib/%${name}.yr`, 'utf8'), { onlySections: true, ignoreYr: true }).devops[name];*/
 
     for (let item of sections.devops) {
       for (let value of Object.keys(item)) {
